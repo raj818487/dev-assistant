@@ -1,0 +1,73 @@
+# dev-assistant — graphifyignore template
+# Excludes non-code files from the knowledge graph scan.
+# Copied to your project root by connect.ps1 / connect.sh.
+# Edit to match your project structure.
+
+# Documentation and markup
+**/*.md
+**/*.mdx
+**/*.txt
+**/*.rst
+**/*.pdf
+**/*.docx
+
+# Config and data files (usually not useful for code graph)
+**/*.yaml
+**/*.yml
+**/*.toml
+**/*.ini
+**/*.env
+**/*.env.*
+
+# Web assets
+**/*.html
+**/*.svg
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.ico
+**/*.webp
+
+# Build output
+dist/
+build/
+out/
+**/bin/
+**/obj/
+**/publish/
+
+# Dependencies
+node_modules/
+**/vendor/
+**/.venv/
+**/venv/
+
+# Graphify output (never scan itself)
+graphify-out/
+
+# Lock files and minified output
+**/*.lock
+**/package-lock.json
+**/*.min.js
+**/*.min.css
+**/*.map
+
+# Test fixtures and data
+**/fixtures/
+**/test-data/
+**/testdata/
+**/__snapshots__/
+
+# Database migrations (generated files, rarely useful for chat context)
+**/Migrations/
+**/migrations/
+
+# AI / agent config (meta-files, not project logic)
+.claude/
+.agents/
+.github/
+.cursor/
+.githooks/
+agent-rules-books/
+graphify-out/

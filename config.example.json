@@ -1,0 +1,22 @@
+{
+  "projectName": "MyProject",
+  "projectRoot": "D:\\path\\to\\your\\project",
+  "graphPath": "D:\\path\\to\\your\\project\\graphify-out\\graph.json",
+  "techStack": "Angular 20 + .NET 10 + PostgreSQL",
+  "backendPattern": "Clean Architecture (Domain -> Application -> Infrastructure -> Api)",
+  "frontendPattern": "Standalone Angular components, no NgModules",
+  "apiPattern": "/api/v1/<resource>",
+  "architectureRules": [
+    "Never add a second database context",
+    "Never default numeric fields to 0 — use null",
+    "All permission strings go in PermissionCatalog AND the seeder"
+  ],
+  "goldenModuleSimple": "describe your simplest CRUD reference file here",
+  "goldenModuleWizard": "describe your multi-step wizard reference file here",
+  "existingFeatures": [
+    "Login",
+    "Dashboard"
+  ],
+  "memoryDir": "C:\\Users\\yourname\\.claude\\projects\\your-project\\memory",
+  "port": 8765
+}
