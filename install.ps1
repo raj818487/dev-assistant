@@ -1,49 +1,78 @@
 # dev-assistant — install prerequisites (Windows)
-# Run once per machine before running connect.ps1
+# Run once per machine.
 
 Write-Host ""
 Write-Host "  dev-assistant — install" -ForegroundColor Cyan
 Write-Host "  ----------------------------------------"
 Write-Host ""
 
-# Check Python
-if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-    Write-Host "  Python not found. Install from https://www.python.org/downloads/" -ForegroundColor Red
+# Refresh PATH from registry so tools installed in this session are visible
+$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
+            [System.Environment]::GetEnvironmentVariable("PATH","User")
+
+# ── Python ────────────────────────────────────────────────────────────────────
+$py = Get-Command python -ErrorAction SilentlyContinue
+if (-not $py) {
+    Write-Host "  [MISSING] Python — install from https://www.python.org/downloads/" -ForegroundColor Red
     exit 1
 }
-$pyVer = python --version 2>&1
-Write-Host "  Python: $pyVer" -ForegroundColor Green
+Write-Host "  [OK] $(python --version 2>&1)" -ForegroundColor Green
 
-# Check Claude CLI
-if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-    Write-Host "  Claude CLI not found." -ForegroundColor Yellow
-    Write-Host "  Install Claude Code: https://claude.ai/code" -ForegroundColor Yellow
+# ── Claude CLI ────────────────────────────────────────────────────────────────
+$cl = Get-Command claude -ErrorAction SilentlyContinue
+if ($cl) {
+    Write-Host "  [OK] Claude CLI found at $($cl.Source)" -ForegroundColor Green
 } else {
-    Write-Host "  Claude CLI: found" -ForegroundColor Green
+    Write-Host "  [WARN] Claude CLI not found — install Claude Code from https://claude.ai/code" -ForegroundColor Yellow
 }
 
-# Install / update graphify
-if (Get-Command uv -ErrorAction SilentlyContinue) {
-    Write-Host "  Installing graphify via uv..." -ForegroundColor Cyan
-    uv tool install graphifyy 2>&1 | Out-Null
-    uv tool update-shell 2>&1 | Out-Null
-    Write-Host "  graphify: installed" -ForegroundColor Green
-} else {
-    Write-Host "  uv not found. Install uv first:" -ForegroundColor Yellow
-    Write-Host "    winget install astral-sh.uv" -ForegroundColor Yellow
-    Write-Host "  Then re-run this script." -ForegroundColor Yellow
-    exit 1
+# ── uv ────────────────────────────────────────────────────────────────────────
+# Check PATH first, then fall back to known install locations
+$uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+if (-not $uvCmd) {
+    $candidates = @(
+        "$env:USERPROFILE\.local\bin\uv.exe",
+        "$env:USERPROFILE\.cargo\bin\uv.exe",
+        "$env:LOCALAPPDATA\uv\uv.exe",
+        "$env:LOCALAPPDATA\Programs\uv\uv.exe",
+        "C:\Program Files\uv\uv.exe"
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) { $uvCmd = $c; break }
+    }
 }
 
-# Verify graphify
-if (Get-Command graphify -ErrorAction SilentlyContinue) {
-    Write-Host "  graphify: ready" -ForegroundColor Green
+if (-not $uvCmd) {
+    Write-Host "  [MISSING] uv not found. Installing via winget..." -ForegroundColor Yellow
+    winget install astral-sh.uv --silent 2>&1 | Out-Null
+    # Refresh PATH again after install
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
+                [System.Environment]::GetEnvironmentVariable("PATH","User")
+    $uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+    if (-not $uvCmd) {
+        Write-Host "  [WARN] uv installed but not in PATH yet. Open a new terminal and re-run." -ForegroundColor Yellow
+        exit 1
+    }
+}
+Write-Host "  [OK] uv found" -ForegroundColor Green
+
+# ── graphify ──────────────────────────────────────────────────────────────────
+Write-Host "  Installing / updating graphify..." -ForegroundColor Cyan
+$uvExe = if ($uvCmd -is [string]) { $uvCmd } else { $uvCmd.Source }
+& $uvExe tool install graphifyy 2>&1 | Out-Null
+& $uvExe tool update-shell 2>&1 | Out-Null
+
+# Refresh PATH one more time
+$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
+            [System.Environment]::GetEnvironmentVariable("PATH","User")
+
+$gf = Get-Command graphify -ErrorAction SilentlyContinue
+if ($gf) {
+    Write-Host "  [OK] graphify ready at $($gf.Source)" -ForegroundColor Green
 } else {
-    Write-Host "  graphify installed but not in PATH yet." -ForegroundColor Yellow
-    Write-Host "  Open a new terminal and re-run connect.ps1." -ForegroundColor Yellow
+    Write-Host "  [WARN] graphify installed but not in PATH. Open a new terminal." -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "  All prerequisites installed." -ForegroundColor Green
-Write-Host "  Next: run .\connect.ps1 to connect to your project."
+Write-Host "  Done. Next step: .\connect.ps1" -ForegroundColor Green
 Write-Host ""

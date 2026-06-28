@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # dev-assistant — install prerequisites (Mac/Linux)
-# Run once per machine before running connect.sh
 
 set -e
 echo ""
@@ -8,41 +7,52 @@ echo "  dev-assistant — install"
 echo "  ----------------------------------------"
 echo ""
 
+# Reload PATH (handles tools installed in same terminal session)
+[ -f "$HOME/.local/bin/env" ]    && source "$HOME/.local/bin/env" 2>/dev/null || true
+[ -f "$HOME/.cargo/env" ]        && source "$HOME/.cargo/env"     2>/dev/null || true
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
 # Python
-if ! command -v python3 &>/dev/null; then
-  echo "  Python 3 not found. Install from https://www.python.org/downloads/"
+if command -v python3 &>/dev/null; then
+  echo "  [OK] $(python3 --version)"
+else
+  echo "  [MISSING] Python 3 — install from https://www.python.org/"
   exit 1
 fi
-echo "  Python: $(python3 --version)"
 
 # Claude CLI
 if command -v claude &>/dev/null; then
-  echo "  Claude CLI: found"
+  echo "  [OK] Claude CLI found"
 else
-  echo "  Claude CLI not found. Install Claude Code: https://claude.ai/code"
+  echo "  [WARN] Claude CLI not found — install Claude Code: https://claude.ai/code"
 fi
 
-# uv + graphify
+# uv — install if missing
+if ! command -v uv &>/dev/null; then
+  echo "  Installing uv..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  source "$HOME/.local/bin/env" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
+fi
+
 if command -v uv &>/dev/null; then
-  echo "  Installing graphify via uv..."
-  uv tool install graphifyy
-  uv tool update-shell
-  echo "  graphify: installed"
+  echo "  [OK] uv found"
 else
-  echo "  uv not found. Install it:"
-  echo "    curl -LsSf https://astral.sh/uv/install.sh | sh"
-  echo "  Then re-run this script."
+  echo "  [ERROR] uv install failed. Try manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
   exit 1
 fi
 
+# graphify
+echo "  Installing / updating graphify..."
+uv tool install graphifyy 2>/dev/null || uv tool upgrade graphifyy 2>/dev/null || true
+uv tool update-shell 2>/dev/null || true
+export PATH="$HOME/.local/bin:$(uv tool dir 2>/dev/null)/bin:$PATH"
+
 if command -v graphify &>/dev/null; then
-  echo "  graphify: ready"
+  echo "  [OK] graphify ready"
 else
-  echo "  graphify installed but not in PATH yet."
-  echo "  Restart your terminal then run: ./connect.sh"
+  echo "  [WARN] graphify installed but PATH not updated — restart your terminal first."
 fi
 
 echo ""
-echo "  All prerequisites installed."
-echo "  Next: ./connect.sh"
+echo "  Done. Next: ./connect.sh"
 echo ""

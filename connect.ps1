@@ -1,195 +1,201 @@
-# dev-assistant — connect to a project
+# dev-assistant — connect to a project (Windows)
+# Ask: project path + tech stack. Everything else is auto-detected.
 # Usage: .\connect.ps1
-# Run once per project. Generates config.json and installs files into the target project.
 
 Set-StrictMode -Off
 $ErrorActionPreference = "Stop"
 $HERE = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+# Refresh PATH so graphify / claude / uv are visible even if just installed
+$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
+            [System.Environment]::GetEnvironmentVariable("PATH","User")
+
 Write-Host ""
-Write-Host "  dev-assistant — connect to a project" -ForegroundColor Cyan
+Write-Host "  dev-assistant — connect" -ForegroundColor Cyan
 Write-Host "  ----------------------------------------"
 Write-Host ""
 
-# ── 1. Project root ───────────────────────────────────────────────────────────
-$projectRoot = Read-Host "  Project root path (absolute)"
-$projectRoot = $projectRoot.Trim().Trim('"')
+# ── 1. Two questions ──────────────────────────────────────────────────────────
+$projectRoot = (Read-Host "  Project path (absolute)").Trim().Trim('"')
 if (-not (Test-Path $projectRoot)) {
-    Write-Host "  ERROR: Path not found: $projectRoot" -ForegroundColor Red
+    Write-Host "  ERROR: path not found." -ForegroundColor Red; exit 1
+}
+
+$folderName  = Split-Path -Leaf $projectRoot
+$techStack   = Read-Host "  Tech stack (e.g. 'Angular + .NET + PostgreSQL')"
+$projectName = $folderName   # derived — user can edit config.json later if needed
+
+$portStr = Read-Host "  Chat server port [8765]"
+$port    = if ($portStr -match '^\d+$') { [int]$portStr } else { 8765 }
+
+Write-Host ""
+Write-Host "  Got it. Auto-detecting the rest from your codebase..." -ForegroundColor Cyan
+
+# ── 2. Check graphify ─────────────────────────────────────────────────────────
+$gfCmd = Get-Command graphify -ErrorAction SilentlyContinue
+if (-not $gfCmd) {
+    Write-Host ""
+    Write-Host "  graphify not found. Run .\install.ps1 first." -ForegroundColor Red
     exit 1
 }
 
-# ── 2. Project name ───────────────────────────────────────────────────────────
-$folderName = Split-Path -Leaf $projectRoot
-$projectName = Read-Host "  Project name [$folderName]"
-if ([string]::IsNullOrWhiteSpace($projectName)) { $projectName = $folderName }
-
-# ── 3. Tech stack (auto-detect or ask) ───────────────────────────────────────
-$detectedStack = ""
-if (Test-Path "$projectRoot\package.json") {
-    $pkg = Get-Content "$projectRoot\package.json" -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-    $fw = $pkg.dependencies.PSObject.Properties.Name -join ", "
-    $detectedStack = "Node.js / $fw"
+# ── 3. Build knowledge graph ──────────────────────────────────────────────────
+Write-Host "  [1/4] Building knowledge graph (may take 2-5 min)..." -ForegroundColor Yellow
+Push-Location $projectRoot
+try {
+    & graphify . --backend claude-cli
+    Write-Host "  Graph built." -ForegroundColor Green
+} catch {
+    Write-Host "  Graph build failed: $_" -ForegroundColor Red
+    Write-Host "  Continuing with partial config — you can rebuild later." -ForegroundColor Yellow
 }
-if (Test-Path "$projectRoot\frontend\package.json") {
-    $pkg = Get-Content "$projectRoot\frontend\package.json" -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-    if ($pkg.dependencies."@angular/core") { $detectedStack = "Angular + " + $detectedStack }
-    if ($pkg.dependencies."react")         { $detectedStack = "React + "   + $detectedStack }
-    if ($pkg.dependencies."vue")           { $detectedStack = "Vue + "     + $detectedStack }
-}
-if (Get-ChildItem "$projectRoot" -Recurse -Filter "*.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1) {
-    $detectedStack = $detectedStack + " .NET"
-}
-$hint = if ($detectedStack) { " [detected: $($detectedStack.Trim(' +'))]" } else { "" }
-$techStack = Read-Host "  Tech stack$hint"
-if ([string]::IsNullOrWhiteSpace($techStack)) { $techStack = $detectedStack.Trim(' +') }
+Pop-Location
 
-# ── 4. Architecture rules ─────────────────────────────────────────────────────
-Write-Host ""
-Write-Host "  Enter your top architecture rules, one per line." -ForegroundColor Yellow
-Write-Host "  (e.g. 'Never add a second DbContext', 'Always use null for optional numbers')"
-Write-Host "  Press Enter twice when done."
-$rules = @()
-while ($true) {
-    $line = Read-Host "  Rule"
-    if ([string]::IsNullOrWhiteSpace($line)) { break }
-    $rules += $line
-}
-
-# ── 5. Golden modules ─────────────────────────────────────────────────────────
-Write-Host ""
-$goldenSimple = Read-Host "  Best SIMPLE CRUD reference file (e.g. src/controllers/cities.controller.ts)"
-$goldenWizard = Read-Host "  Best WIZARD/COMPLEX reference file (Enter to skip)"
-
-# ── 6. Existing features ──────────────────────────────────────────────────────
-Write-Host ""
-Write-Host "  List existing features (comma-separated, or press Enter to skip):" -ForegroundColor Yellow
-$featuresRaw = Read-Host "  Features"
-$features = if ($featuresRaw) { $featuresRaw -split "," | ForEach-Object { $_.Trim() } } else { @() }
-
-# ── 7. Port ───────────────────────────────────────────────────────────────────
-$portStr = Read-Host "  Chat server port [8765]"
-$port = if ($portStr -match '^\d+$') { [int]$portStr } else { 8765 }
-
-# ── 8. Memory dir (for AI context workflows) ──────────────────────────────────
-$safeSlug = $projectRoot -replace '[:\\/ ]', '-' -replace '-+', '-'
-$defaultMemDir = "$env:USERPROFILE\.claude\projects\$safeSlug\memory"
-Write-Host ""
-Write-Host "  AI memory dir (stores Claude context files)" -ForegroundColor Yellow
-$memDir = Read-Host "  Memory dir [$defaultMemDir]"
-if ([string]::IsNullOrWhiteSpace($memDir)) { $memDir = $defaultMemDir }
-New-Item -ItemType Directory -Force -Path $memDir | Out-Null
-
-# ── 9. Graph path ─────────────────────────────────────────────────────────────
 $graphPath = "$projectRoot\graphify-out\graph.json"
 
-# ── Write config.json ─────────────────────────────────────────────────────────
-$config = [ordered]@{
-    projectName     = $projectName
-    projectRoot     = $projectRoot
-    graphPath       = $graphPath
-    techStack       = $techStack
-    backendPattern  = ""
-    frontendPattern = ""
-    apiPattern      = "/api/v1/<resource>"
-    architectureRules = $rules
-    goldenModuleSimple = $goldenSimple
-    goldenModuleWizard = $goldenWizard
-    existingFeatures   = $features
-    memoryDir = $memDir
-    port      = $port
+# ── 4. Auto-detect config using Claude ───────────────────────────────────────
+Write-Host "  [2/4] Auto-detecting project config with Claude..." -ForegroundColor Yellow
+
+$autoPrompt = @"
+You are analysing a software project to configure an AI assistant.
+
+Project path: $projectRoot
+Tech stack: $techStack
+
+Scan the project directory. Look at:
+- CLAUDE.md, AGENTS.md, README.md for architecture rules
+- Backend controllers/routes to find existing features and API patterns
+- Frontend pages/components to find existing features
+- The simplest complete CRUD file (smallest controller+service pair) as the golden simple module
+- The most complex multi-step form/wizard as the golden wizard module
+
+Return ONLY a valid JSON object, no markdown, no explanation, nothing else:
+{
+  "architectureRules": ["rule 1", "rule 2", "rule 3"],
+  "existingFeatures": ["Feature A", "Feature B"],
+  "goldenModuleSimple": "relative/path/to/simplest/crud/file",
+  "goldenModuleWizard": "relative/path/to/wizard/file or empty string",
+  "apiPattern": "/api/v1/<resource> or detected pattern",
+  "backendPattern": "one sentence about backend layer structure",
+  "frontendPattern": "one sentence about frontend component structure"
 }
+"@
+
+$autoConfig = $null
+try {
+    $tmpFile = [System.IO.Path]::GetTempFileName()
+    $autoPrompt | Out-File $tmpFile -Encoding UTF8
+    $raw = Get-Content $tmpFile | & claude --print 2>&1
+    Remove-Item $tmpFile -ErrorAction SilentlyContinue
+
+    # Extract the JSON block from the response
+    $jsonMatch = [regex]::Match($raw, '\{[\s\S]*\}')
+    if ($jsonMatch.Success) {
+        $autoConfig = $jsonMatch.Value | ConvertFrom-Json
+        Write-Host "  Auto-detection complete." -ForegroundColor Green
+    } else {
+        Write-Host "  Auto-detection returned unexpected output. Using defaults." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "  Auto-detection failed: $_" -ForegroundColor Yellow
+    Write-Host "  Using defaults — edit config.json manually if needed." -ForegroundColor Yellow
+}
+
+# ── 5. Build config.json ──────────────────────────────────────────────────────
+Write-Host "  [3/4] Writing config.json..." -ForegroundColor Yellow
+
+$safeSlug   = $projectRoot -replace '[:\\/ ]', '-' -replace '-+', '-'
+$memDir     = "$env:USERPROFILE\.claude\projects\$safeSlug\memory"
+New-Item -ItemType Directory -Force -Path $memDir | Out-Null
+
+$config = [ordered]@{
+    projectName        = $projectName
+    projectRoot        = $projectRoot
+    graphPath          = $graphPath
+    techStack          = $techStack
+    backendPattern     = if ($autoConfig) { $autoConfig.backendPattern }  else { "" }
+    frontendPattern    = if ($autoConfig) { $autoConfig.frontendPattern } else { "" }
+    apiPattern         = if ($autoConfig) { $autoConfig.apiPattern }      else { "/api/v1/<resource>" }
+    architectureRules  = if ($autoConfig) { @($autoConfig.architectureRules) } else { @() }
+    goldenModuleSimple = if ($autoConfig) { $autoConfig.goldenModuleSimple } else { "" }
+    goldenModuleWizard = if ($autoConfig) { $autoConfig.goldenModuleWizard } else { "" }
+    existingFeatures   = if ($autoConfig) { @($autoConfig.existingFeatures) } else { @() }
+    memoryDir          = $memDir
+    port               = $port
+}
+
 $config | ConvertTo-Json -Depth 5 | Set-Content "$HERE\config.json" -Encoding UTF8
-Write-Host ""
 Write-Host "  config.json written." -ForegroundColor Green
 
-# ── Copy .graphifyignore to project ──────────────────────────────────────────
-$ignoreTemplate = "$HERE\templates\graphifyignore"
-$ignoreTarget   = "$projectRoot\.graphifyignore"
-if (-not (Test-Path $ignoreTarget)) {
-    Copy-Item $ignoreTemplate $ignoreTarget
-    Write-Host "  .graphifyignore copied to project." -ForegroundColor Green
-} else {
-    Write-Host "  .graphifyignore already exists in project (skipped)." -ForegroundColor Yellow
+# ── 6. Copy templates + workflows into project ────────────────────────────────
+Write-Host "  [4/4] Installing files into project..." -ForegroundColor Yellow
+
+# .graphifyignore
+if (-not (Test-Path "$projectRoot\.graphifyignore")) {
+    Copy-Item "$HERE\templates\graphifyignore" "$projectRoot\.graphifyignore"
+    Write-Host "  .graphifyignore installed." -ForegroundColor Green
 }
 
-# ── Copy workflows to project ─────────────────────────────────────────────────
+# Workflows
 $wfDir = "$projectRoot\.claude\workflows"
 New-Item -ItemType Directory -Force -Path $wfDir | Out-Null
-
-$configForWf = $config | ConvertTo-Json -Depth 5 -Compress
 
 foreach ($wf in @("update-project-memory.js", "feature-docs.js")) {
     $src = "$HERE\workflows\$wf"
     $dst = "$wfDir\$wf"
     if (Test-Path $src) {
-        $content = Get-Content $src -Raw
-        # Inject config values into the workflow
-        $content = $content -replace '__PROJECT_ROOT__', ($projectRoot -replace '\\', '\\\\')
-        $content = $content -replace '__MEMORY_DIR__', ($memDir -replace '\\', '\\\\')
-        $content = $content -replace '__PROJECT_NAME__', $projectName
-        $content = $content -replace '__TECH_STACK__', $techStack
-        Set-Content $dst $content -Encoding UTF8
-        Write-Host "  Copied workflow: $wf" -ForegroundColor Green
+        $c = Get-Content $src -Raw
+        $c = $c -replace '__PROJECT_ROOT__', ($projectRoot  -replace '\\', '\\\\')
+        $c = $c -replace '__MEMORY_DIR__',   ($memDir       -replace '\\', '\\\\')
+        $c = $c -replace '__PROJECT_NAME__', $projectName
+        $c = $c -replace '__TECH_STACK__',   $techStack
+        Set-Content $dst $c -Encoding UTF8
+        Write-Host "  Workflow installed: $wf" -ForegroundColor Green
     }
 }
 
-# ── Build the graph ───────────────────────────────────────────────────────────
-Write-Host ""
-Write-Host "  Building knowledge graph (this takes a few minutes)..." -ForegroundColor Cyan
-$graphifyArgs = ". --backend claude-cli"
-$ignoreFile = "$projectRoot\.graphifyignore"
-Set-Location $projectRoot
-try {
-    & graphify . --backend claude-cli
-    Write-Host "  Graph built." -ForegroundColor Green
-} catch {
-    Write-Host "  graphify not found. Install it first: uv tool install graphifyy" -ForegroundColor Red
-    Write-Host "  Then re-run: .\connect.ps1" -ForegroundColor Yellow
-}
-
-# ── Write COMMANDS.md with pre-filled commands ────────────────────────────────
-$commandsMd = @"
-# dev-assistant Commands for $projectName
-
-Generated by connect.ps1.
+# ── 7. Write COMMANDS.md ──────────────────────────────────────────────────────
+$today = Get-Date -Format "yyyy-MM-dd"
+$cmdsMd = @"
+# dev-assistant commands for $projectName
 
 ## Start the chatbot
-
 ``````powershell
-python "$HERE\server.py"
+cd "$HERE"
+python server.py
 ``````
 Open: http://localhost:$port
 
-## Regenerate the knowledge graph
-
+## Rebuild the graph (after big code changes)
 ``````powershell
 cd "$projectRoot"
 graphify . --backend claude-cli
 ``````
 
-## Update AI memory (full project scan)
-
-In Claude Code:
+## Update AI memory (in Claude Code chat)
 ``````
-Workflow({ name: 'update-project-memory', args: { date: '$(Get-Date -Format yyyy-MM-dd)' } })
+Workflow({ name: 'update-project-memory', args: { date: '$today' } })
 ``````
 
-## Generate docs for one feature
-
-In Claude Code:
+## Generate feature docs (in Claude Code chat)
 ``````
-Workflow({ name: 'feature-docs', args: { feature: 'Your Feature Name', date: '$(Get-Date -Format yyyy-MM-dd)' } })
+Workflow({ name: 'feature-docs', args: { feature: 'Your Feature Name', date: '$today' } })
 ``````
 "@
-Set-Content "$HERE\COMMANDS.md" $commandsMd -Encoding UTF8
-Write-Host "  COMMANDS.md written with pre-filled commands." -ForegroundColor Green
+Set-Content "$HERE\COMMANDS.md" $cmdsMd -Encoding UTF8
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "  Setup complete!" -ForegroundColor Green
+Write-Host "  All done!" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Start the assistant:   python `"$HERE\server.py`""
-Write-Host "  Open browser:          http://localhost:$port"
-Write-Host "  All commands:          $HERE\COMMANDS.md"
+Write-Host "  Start the assistant:" -ForegroundColor Cyan
+Write-Host "    cd `"$HERE`""
+Write-Host "    python server.py"
+Write-Host ""
+Write-Host "  Open in browser: http://localhost:$port"
+Write-Host ""
+if ($autoConfig -and $autoConfig.existingFeatures) {
+    Write-Host "  Detected $($autoConfig.existingFeatures.Count) existing features." -ForegroundColor DarkGray
+}
+Write-Host "  Edit $HERE\config.json to adjust if anything looks wrong." -ForegroundColor DarkGray
 Write-Host ""

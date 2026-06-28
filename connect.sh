@@ -1,71 +1,126 @@
 #!/usr/bin/env bash
 # dev-assistant — connect to a project (Mac/Linux)
-# Usage: ./connect.sh
+# Ask: project path + tech stack. Everything else is auto-detected.
 
 set -e
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo ""
-echo "  dev-assistant — connect to a project"
+echo "  dev-assistant — connect"
 echo "  ----------------------------------------"
 echo ""
 
-# 1. Project root
-read -rp "  Project root path (absolute): " PROJECT_ROOT
+# 1. Two questions
+read -rp "  Project path (absolute): " PROJECT_ROOT
 PROJECT_ROOT="${PROJECT_ROOT//\"/}"
 if [ ! -d "$PROJECT_ROOT" ]; then
-  echo "  ERROR: Path not found: $PROJECT_ROOT"
-  exit 1
+  echo "  ERROR: path not found: $PROJECT_ROOT"; exit 1
 fi
 
-# 2. Project name
 FOLDER_NAME=$(basename "$PROJECT_ROOT")
-read -rp "  Project name [$FOLDER_NAME]: " PROJECT_NAME
-PROJECT_NAME="${PROJECT_NAME:-$FOLDER_NAME}"
+read -rp "  Tech stack (e.g. 'Angular + .NET + PostgreSQL'): " TECH_STACK
+PROJECT_NAME="$FOLDER_NAME"
 
-# 3. Tech stack
-DETECTED=""
-[ -f "$PROJECT_ROOT/package.json" ] && DETECTED="Node.js"
-[ -f "$PROJECT_ROOT/frontend/package.json" ] && DETECTED="Angular/React/Vue + $DETECTED"
-find "$PROJECT_ROOT" -name "*.csproj" -maxdepth 4 2>/dev/null | head -1 | grep -q . && DETECTED="$DETECTED + .NET"
-read -rp "  Tech stack [detected: ${DETECTED:-unknown}]: " TECH_STACK
-TECH_STACK="${TECH_STACK:-$DETECTED}"
-
-# 4. Architecture rules
-echo ""
-echo "  Enter architecture rules, one per line. Press Enter twice when done."
-RULES=()
-while IFS= read -rp "  Rule: " line && [ -n "$line" ]; do
-  RULES+=("$line")
-done
-
-# 5. Golden modules
-echo ""
-read -rp "  Best SIMPLE CRUD reference file: " GOLDEN_SIMPLE
-read -rp "  Best WIZARD/COMPLEX reference file (Enter to skip): " GOLDEN_WIZARD
-
-# 6. Existing features
-echo ""
-read -rp "  Existing features (comma-separated): " FEATURES_RAW
-
-# 7. Port
 read -rp "  Chat server port [8765]: " PORT_INPUT
 PORT="${PORT_INPUT:-8765}"
 
-# 8. Memory dir
-SAFE_SLUG=$(echo "$PROJECT_ROOT" | tr ':/\\ ' '----' | tr -s '-')
-DEFAULT_MEM="$HOME/.claude/projects/$SAFE_SLUG/memory"
 echo ""
-read -rp "  AI memory dir [$DEFAULT_MEM]: " MEM_DIR
-MEM_DIR="${MEM_DIR:-$DEFAULT_MEM}"
-mkdir -p "$MEM_DIR"
+echo "  Got it. Auto-detecting the rest from your codebase..."
 
-# 9. Graph path
+# 2. Check graphify
+if ! command -v graphify &>/dev/null; then
+  echo "  graphify not found. Run ./install.sh first."; exit 1
+fi
+
+# 3. Build knowledge graph
+echo "  [1/4] Building knowledge graph (may take 2-5 min)..."
+cd "$PROJECT_ROOT"
+if graphify . --backend claude-cli; then
+  echo "  Graph built."
+else
+  echo "  Graph build failed. Continuing with partial config."
+fi
+cd "$HERE"
+
 GRAPH_PATH="$PROJECT_ROOT/graphify-out/graph.json"
 
-# Write config.json
-RULES_JSON=$(printf '"%s",' "${RULES[@]}" | sed 's/,$//')
-FEATURES_JSON=$(echo "$FEATURES_RAW" | python3 -c "import sys,json; items=[x.strip() for x in sys.stdin.read().split(',') if x.strip()]; print(json.dumps(items))" 2>/dev/null || echo "[]")
+# 4. Auto-detect config using Claude
+echo "  [2/4] Auto-detecting project config with Claude..."
+
+AUTO_PROMPT="You are analysing a software project to configure an AI assistant.
+
+Project path: $PROJECT_ROOT
+Tech stack: $TECH_STACK
+
+Scan the project directory. Look at:
+- CLAUDE.md, AGENTS.md, README.md for architecture rules
+- Backend controllers/routes to find existing features and API patterns
+- Frontend pages/components to find existing features
+- The simplest complete CRUD file as the golden simple module
+- The most complex multi-step form/wizard as the golden wizard module
+
+Return ONLY a valid JSON object, no markdown, no explanation:
+{
+  \"architectureRules\": [\"rule 1\", \"rule 2\"],
+  \"existingFeatures\": [\"Feature A\", \"Feature B\"],
+  \"goldenModuleSimple\": \"relative/path/to/simplest/crud/file\",
+  \"goldenModuleWizard\": \"relative/path/to/wizard/file or empty string\",
+  \"apiPattern\": \"/api/v1/<resource> or detected pattern\",
+  \"backendPattern\": \"one sentence about backend structure\",
+  \"frontendPattern\": \"one sentence about frontend structure\"
+}"
+
+SAFE_SLUG=$(echo "$PROJECT_ROOT" | tr ':/\\ ' '----' | tr -s '-')
+MEM_DIR="$HOME/.claude/projects/$SAFE_SLUG/memory"
+mkdir -p "$MEM_DIR"
+
+RAW_CONFIG=""
+if command -v claude &>/dev/null; then
+  TMP=$(mktemp)
+  echo "$AUTO_PROMPT" > "$TMP"
+  RAW_CONFIG=$(claude --print < "$TMP" 2>/dev/null || echo "")
+  rm -f "$TMP"
+fi
+
+# Extract JSON from response
+ARCH_RULES='[]'
+FEATURES='[]'
+GOLDEN_SIMPLE=''
+GOLDEN_WIZARD=''
+API_PATTERN='/api/v1/<resource>'
+BACKEND_PATTERN=''
+FRONTEND_PATTERN=''
+
+if [ -n "$RAW_CONFIG" ]; then
+  # Try to parse with python3
+  PARSED=$(echo "$RAW_CONFIG" | python3 -c "
+import sys, json, re
+raw = sys.stdin.read()
+m = re.search(r'\{[\s\S]*\}', raw)
+if m:
+    try:
+        d = json.loads(m.group())
+        print(json.dumps(d))
+    except: pass
+" 2>/dev/null || echo "")
+  if [ -n "$PARSED" ]; then
+    ARCH_RULES=$(echo "$PARSED"  | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d.get('architectureRules',[])))")
+    FEATURES=$(echo "$PARSED"    | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d.get('existingFeatures',[])))")
+    GOLDEN_SIMPLE=$(echo "$PARSED" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('goldenModuleSimple',''))")
+    GOLDEN_WIZARD=$(echo "$PARSED" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('goldenModuleWizard',''))")
+    API_PATTERN=$(echo "$PARSED" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('apiPattern','/api/v1/<resource>'))")
+    BACKEND_PATTERN=$(echo "$PARSED" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('backendPattern',''))")
+    FRONTEND_PATTERN=$(echo "$PARSED" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('frontendPattern',''))")
+    echo "  Auto-detection complete."
+  else
+    echo "  Auto-detection returned unexpected output. Using defaults."
+  fi
+else
+  echo "  Claude not available. Using defaults."
+fi
+
+# 5. Write config.json
+echo "  [3/4] Writing config.json..."
 
 cat > "$HERE/config.json" <<EOF
 {
@@ -73,80 +128,64 @@ cat > "$HERE/config.json" <<EOF
   "projectRoot": "$PROJECT_ROOT",
   "graphPath": "$GRAPH_PATH",
   "techStack": "$TECH_STACK",
-  "backendPattern": "",
-  "frontendPattern": "",
-  "apiPattern": "/api/v1/<resource>",
-  "architectureRules": [$RULES_JSON],
+  "backendPattern": "$BACKEND_PATTERN",
+  "frontendPattern": "$FRONTEND_PATTERN",
+  "apiPattern": "$API_PATTERN",
+  "architectureRules": $ARCH_RULES,
   "goldenModuleSimple": "$GOLDEN_SIMPLE",
   "goldenModuleWizard": "$GOLDEN_WIZARD",
-  "existingFeatures": $FEATURES_JSON,
+  "existingFeatures": $FEATURES,
   "memoryDir": "$MEM_DIR",
   "port": $PORT
 }
 EOF
 echo "  config.json written."
 
-# Copy .graphifyignore
-if [ ! -f "$PROJECT_ROOT/.graphifyignore" ]; then
-  cp "$HERE/templates/graphifyignore" "$PROJECT_ROOT/.graphifyignore"
-  echo "  .graphifyignore copied to project."
-else
-  echo "  .graphifyignore already exists (skipped)."
-fi
+# 6. Copy templates + install workflows
+echo "  [4/4] Installing files into project..."
 
-# Copy workflows
-mkdir -p "$PROJECT_ROOT/.claude/workflows"
+[ ! -f "$PROJECT_ROOT/.graphifyignore" ] && cp "$HERE/templates/graphifyignore" "$PROJECT_ROOT/.graphifyignore" && echo "  .graphifyignore installed."
+
+WF_DIR="$PROJECT_ROOT/.claude/workflows"
+mkdir -p "$WF_DIR"
+
 for WF in update-project-memory.js feature-docs.js; do
   SRC="$HERE/workflows/$WF"
-  DST="$PROJECT_ROOT/.claude/workflows/$WF"
+  DST="$WF_DIR/$WF"
   if [ -f "$SRC" ]; then
-    ESC_ROOT=$(echo "$PROJECT_ROOT" | sed 's/\\/\\\\/g')
-    ESC_MEM=$(echo "$MEM_DIR" | sed 's/\\/\\\\/g')
-    sed -e "s|__PROJECT_ROOT__|$ESC_ROOT|g" \
-        -e "s|__MEMORY_DIR__|$ESC_MEM|g" \
+    sed -e "s|__PROJECT_ROOT__|$PROJECT_ROOT|g" \
+        -e "s|__MEMORY_DIR__|$MEM_DIR|g" \
         -e "s|__PROJECT_NAME__|$PROJECT_NAME|g" \
         -e "s|__TECH_STACK__|$TECH_STACK|g" \
         "$SRC" > "$DST"
-    echo "  Copied workflow: $WF"
+    echo "  Workflow installed: $WF"
   fi
 done
 
-# Build graph
-echo ""
-echo "  Building knowledge graph..."
-cd "$PROJECT_ROOT"
-if command -v graphify &>/dev/null; then
-  graphify . --backend claude-cli
-  echo "  Graph built."
-else
-  echo "  graphify not found. Install: uv tool install graphifyy && uv tool update-shell"
-fi
-
-# Write COMMANDS.md
+# 7. COMMANDS.md
 TODAY=$(date +%Y-%m-%d)
 cat > "$HERE/COMMANDS.md" <<EOF
-# dev-assistant Commands for $PROJECT_NAME
+# dev-assistant commands for $PROJECT_NAME
 
 ## Start the chatbot
 \`\`\`bash
-python "$HERE/server.py"
+cd "$HERE"
+python server.py
 \`\`\`
 Open: http://localhost:$PORT
 
-## Rebuild the knowledge graph
+## Rebuild the graph
 \`\`\`bash
 cd "$PROJECT_ROOT"
 graphify . --backend claude-cli
 \`\`\`
 
-## Update AI memory (full scan)
-In Claude Code:
+## Update AI memory (in Claude Code chat)
 \`\`\`
 Workflow({ name: 'update-project-memory', args: { date: '$TODAY' } })
 \`\`\`
 
-## Generate docs for one feature
-In Claude Code:
+## Generate feature docs (in Claude Code chat)
 \`\`\`
 Workflow({ name: 'feature-docs', args: { feature: 'Your Feature Name', date: '$TODAY' } })
 \`\`\`
@@ -154,7 +193,8 @@ EOF
 echo "  COMMANDS.md written."
 
 echo ""
-echo "  Setup complete!"
+echo "  All done!"
+echo ""
 echo "  Start: python \"$HERE/server.py\""
 echo "  Open:  http://localhost:$PORT"
 echo ""
