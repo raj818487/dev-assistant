@@ -26,7 +26,7 @@ $techStack   = Read-Host "  Tech stack (e.g. 'Angular + .NET + PostgreSQL')"
 $projectName = $folderName   # derived — user can edit config.json later if needed
 
 $portStr = Read-Host "  Chat server port [8765]"
-$port    = if ($portStr -match '^\d+$') { [int]$portStr } else { 8765 }
+$port    = if ($portStr -match "^\d+$") { [int]$portStr } else { 8765 }
 
 Write-Host ""
 Write-Host "  Got it. Auto-detecting the rest from your codebase..." -ForegroundColor Cyan
@@ -89,7 +89,7 @@ try {
     Remove-Item $tmpFile -ErrorAction SilentlyContinue
 
     # Extract the JSON block from the response
-    $jsonMatch = [regex]::Match($raw, '\{[\s\S]*\}')
+    $jsonMatch = [regex]::Match($raw, "(?s)\{.*\}")
     if ($jsonMatch.Success) {
         $autoConfig = $jsonMatch.Value | ConvertFrom-Json
         Write-Host "  Auto-detection complete." -ForegroundColor Green
@@ -104,7 +104,7 @@ try {
 # ── 5. Build config.json ──────────────────────────────────────────────────────
 Write-Host "  [3/4] Writing config.json..." -ForegroundColor Yellow
 
-$safeSlug   = $projectRoot -replace '[:\\/ ]', '-' -replace '-+', '-'
+$safeSlug   = $projectRoot -replace "[^a-zA-Z0-9]", "-" -replace "-+", "-"
 $memDir     = "$env:USERPROFILE\.claude\projects\$safeSlug\memory"
 New-Item -ItemType Directory -Force -Path $memDir | Out-Null
 
@@ -184,17 +184,17 @@ foreach ($wf in @("update-project-memory.js", "feature-docs.js")) {
     $dst = "$wfDir\$wf"
     if (Test-Path $src) {
         $c = Get-Content $src -Raw
-        $c = $c -replace '__PROJECT_ROOT__', ($projectRoot  -replace '\\', '\\\\')
-        $c = $c -replace '__MEMORY_DIR__',   ($memDir       -replace '\\', '\\\\')
-        $c = $c -replace '__PROJECT_NAME__', $projectName
-        $c = $c -replace '__TECH_STACK__',   $techStack
+        $c = $c -replace "__PROJECT_ROOT__", ($projectRoot  -replace "\\", "\\\\")
+        $c = $c -replace "__MEMORY_DIR__",   ($memDir       -replace "\\", "\\\\")
+        $c = $c -replace "__PROJECT_NAME__", $projectName
+        $c = $c -replace "__TECH_STACK__",   $techStack
         Set-Content $dst $c -Encoding UTF8
         Write-Host "  Workflow installed: $wf" -ForegroundColor Green
     }
 }
 
 # Skills (e.g. grill-me, context-loader, pattern-clone, db-design, code-review-quality, test-agent)
-$skillsSrcDir = "$HERE\templates\skills"
+$skillsSrcDir = "$HERE\skills"
 if (Test-Path $skillsSrcDir) {
     foreach ($skillDir in Get-ChildItem $skillsSrcDir -Directory) {
         $dst = "$projectRoot\.claude\skills\$($skillDir.Name)"
@@ -228,12 +228,12 @@ graphify . --backend claude-cli
 
 ## Update AI memory (in Claude Code chat)
 ``````
-Workflow({ name: 'update-project-memory', args: { date: '$today' } })
+Workflow({ name: "update-project-memory", args: { date: "$today" } })
 ``````
 
 ## Generate feature docs (in Claude Code chat)
 ``````
-Workflow({ name: 'feature-docs', args: { feature: 'Your Feature Name', date: '$today' } })
+Workflow({ name: "feature-docs", args: { feature: "Your Feature Name", date: "$today" } })
 ``````
 
 ## Export generated docs as PDF / DOCX

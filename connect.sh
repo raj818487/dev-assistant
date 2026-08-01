@@ -205,7 +205,7 @@ for WF in update-project-memory.js feature-docs.js; do
 done
 
 # Skills (e.g. grill-me, context-loader, pattern-clone, db-design, code-review-quality, test-agent)
-SKILLS_SRC_DIR="$HERE/templates/skills"
+SKILLS_SRC_DIR="$HERE/skills"
 if [ -d "$SKILLS_SRC_DIR" ]; then
   for skillDir in "$SKILLS_SRC_DIR"/*/; do
     [ -d "$skillDir" ] || continue

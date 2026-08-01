@@ -1,0 +1,18 @@
+{
+  "name": "dev-assistant",
+  "description": "dev-assistant omni-plugin for agentic coding.",
+  "version": "1.0.0",
+  "skills": [
+    "./skills/grill-me",
+    "./skills/context-loader",
+    "./skills/pattern-clone",
+    "./skills/db-design",
+    "./skills/code-review-quality",
+    "./skills/test-agent",
+    "./skills/senior-engineer-mindset",
+    "./skills/code-reduction-review",
+    "./skills/code-reduction-audit",
+    "./skills/live-context-verifier",
+    "./skills/regression-guard"
+  ]
+}
