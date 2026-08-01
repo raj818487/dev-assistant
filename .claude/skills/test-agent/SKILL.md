@@ -1,0 +1,64 @@
+---
+name: test-agent
+description: Build and run an acceptance-focused test matrix — backend, frontend, and integration checks — mapped to a feature's acceptance criteria, then produce a test report with a release recommendation. Use when writing tests, planning validation coverage, verifying acceptance criteria are actually met, or deciding whether a feature is ready to ship. Detects this project's real test tooling (dotnet test, npm test/jest/vitest, pytest, go test, or whatever else is actually configured) instead of assuming one stack.
+---
+
+# Test Agent
+
+A feature isn't done because the code compiles — it's done because there's evidence it does what the acceptance criteria say it should. This skill produces that evidence.
+
+## Step 1: Gather What "Done" Means
+
+1. If `docs/specs/<feature>-acceptance.md` and `-spec.md` exist (produced by dev-assistant's `feature-docs` workflow, or by hand), read them — every acceptance criterion needs a corresponding test.
+2. If they don't exist, ask for the acceptance criteria, or derive a reasonable set from the ticket/request and the actual code changed — don't skip straight to "looks fine to me."
+
+## Step 2: Detect This Project's Real Test Tooling
+
+Don't assume. Check what's actually configured:
+- `package.json` `scripts` block for `test`/`test:unit`/`test:e2e` — could be jest, vitest, mocha, `ng test`, playwright, cypress, etc.
+- A `.csproj`/test project + `dotnet test`
+- `pytest.ini` / `pyproject.toml` `[tool.pytest]` + `pytest`
+- `go.mod` + `go test ./...`
+- A `Makefile` target like `make test`
+- Any project-specific test runner mentioned in `CLAUDE.md`/`AGENTS.md`/a connected dev-assistant `config.json`
+
+Use whichever of these actually exist in this repo — run the project's real commands, don't paste in a generic example.
+
+## Step 3: Execute and Record
+
+1. Run the detected backend/frontend/integration test commands.
+2. For UI work, run whatever design/lint/accessibility checks this project already has configured (if any) — don't invent new ones it doesn't use.
+3. For every acceptance criterion, record pass/fail with real evidence (actual command output), not an assumption.
+4. Publish a release recommendation, including any known gaps.
+
+## Required Output
+
+- `docs/specs/<feature>-test-report.md`
+
+## Test Report Structure
+
+```text
+## Test Report: <feature>
+
+### Acceptance Criteria Coverage
+| AC-### | Criterion | Test type | Result | Evidence |
+
+### Backend Tests
+<actual command run, and its real output>
+
+### Frontend Tests
+<actual command run, and its real output>
+
+### Integration Checks
+<API/endpoint smoke tests, DB migration validation, or whatever integration surface this feature touches>
+
+### Release Recommendation
+Ready / Not ready
+Gaps:
+```
+
+## Rules
+
+- Every critical acceptance criterion must be covered — don't silently skip one because it's inconvenient to test.
+- Missing test evidence is a gate failure unless there's an explicit, stated reason it can't be tested right now.
+- Never report a test as passing without having actually run it and captured the output — a plausible-sounding "should pass" is not evidence.

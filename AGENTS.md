@@ -219,11 +219,14 @@ Before asking a single question, find out what's actually true about this projec
 
 1. **A connected dev-assistant config.** dev-assistant installs live as a sibling folder next to the project they're connected to (e.g. a project at `D:\Work\LIMS` might have dev-assistant at `D:\Work\dev-assistant`). Look up to two directories above this project's root for a `config.json` that either sits inside a folder literally named `dev-assistant`, or whose own `projectRoot` field (path-normalized) matches this project's root. If you find one, read `techStack`, `backendPattern`, `frontendPattern`, `apiPattern`, `architectureRules`, `goldenModuleSimple`, `goldenModuleWizard`, and `existingFeatures` — treat this as authoritative, it was built specifically for this project.
 2. **Project docs**, if no config.json turns up. Read whichever of these exist: `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE_RULES.md`, `.agents/project-context/ARCHITECTURE_RULES.md`, `.agents/project-context/GOLDEN_MODULES.md`, `docs/architecture.md`. Extract the same categories of information from prose — stack, hard rules, and a reference module worth cloning.
-3. **Ask directly**, if neither source gives you anything real. Don't invent architecture rules or guess a tech stack to fill the gap — a challenge based on a made-up rule is worse than no challenge at all. Ask the user for their stack and 2-3 hard constraints before Act 1 starts.
+3. **Auto-Detect Golden Module (NEW):** If no golden module is found, use `grep_search` and query the `graphify` knowledge graph (`graph.json`) to automatically find a reference file or module similar to the feature pitched by the user. Do this silently before starting Act 1.
+4. **Ask directly**, if neither source gives you anything real. Don't invent architecture rules or guess a tech stack to fill the gap — a challenge based on a made-up rule is worse than no challenge at all. Ask the user for their stack and 2-3 hard constraints before Act 1 starts.
 
 Keep whatever you load in mind for the rest of the interview — it's what makes the "adversarial" part of this skill work instead of just being a generic questionnaire.
 
 ## Act 1: Requirements Interview
+
+**GRAPHIFY IMPACT ANALYSIS (Mandatory Check):** Before you ask the first question, query the `graphify` knowledge graph (or request the user to do so) for the specific files/modules the user's feature will touch. Analyze the dependency/caller graph to identify what might break. Use this graph context to ask surgical, targeted questions (e.g., "According to the graph, `OrderService.ts` is called by the billing cron job. How will your changes affect the cron job?").
 
 Interview the user one question at a time. Never batch multiple questions into one turn — a list of five questions lets the user skim and half-answer all of them; one sharp question forces an actual decision before you move on.
 
@@ -246,13 +249,14 @@ As the user answers, write down each resolved point and mark it `[LOCKED]`. A lo
 
 ## Act 2: Adversarial Plan Review
 
-Once Act 1 is locked, draft `REQUIREMENTS.md` and `PLAN.md` into `.ai-work/` (create the directory if it doesn't exist). Give every requirement, acceptance criterion, and risk a stable ID so the plan and the review log can reference them precisely:
+Once Act 1 is locked, draft `REQUIREMENTS.md`, `PLAN.md`, and `TEST_CASES.md` into `.ai-work/` (create the directory if it doesn't exist). Give every requirement, acceptance criterion, and risk a stable ID so the plan and the review log can reference them precisely:
 
 - `REQ-001`, `REQ-002`, ... — one per distinct requirement
 - `AC-001`, `AC-002`, ... — one per acceptance criterion (Given/When/Then works well here)
 - `RISK-001`, `RISK-002`, ... — one per identified risk
+- `TEST-001`, `TEST-002`, ... — one per required unit/security/edge-case test in `TEST_CASES.md`
 
-Then review the plan adversarially — actually try to find what's wrong with it rather than rubber-stamping your own draft. Look for gaps (a requirement with no corresponding plan step), contradictions (two requirements that can't both hold), missing error cases, and anywhere the plan quietly assumes something Step 0's context doesn't support.
+Then review the plan adversarially — actually try to find what's wrong with it rather than rubber-stamping your own draft. Look for gaps (a requirement with no corresponding plan step), contradictions (two requirements that can't both hold), missing error cases, and anywhere the plan quietly assumes something Step 0's context doesn't support. Ensure `TEST_CASES.md` covers edge cases and security validations.
 
 Log every review round to `PLAN-REVIEW-LOG.md`, including what you found and what changed as a result. Loop — revise the plan, review again — until no material issues remain, up to a maximum of 5 rounds. If round 5 arrives and there's still a real disagreement about whether an issue is material, you are the final arbiter: decide, record the reasoning in the log, and move on. Five rounds of circling on the same point helps no one.
 
@@ -260,6 +264,7 @@ Log every review round to `PLAN-REVIEW-LOG.md`, including what you found and wha
 
 - `.ai-work/REQUIREMENTS.md` — locked requirements with `REQ-###` IDs
 - `.ai-work/PLAN.md` — implementation plan with `REQ-###` / `AC-###` / `RISK-###` traceability
+- `.ai-work/TEST_CASES.md` — test-driven specs, edge cases, and security tests with `TEST-###` IDs
 - `.ai-work/PLAN-REVIEW-LOG.md` — every adversarial review round, findings, and resulting changes
 
 ## Exit to Implementation
@@ -407,7 +412,16 @@ Act like a 10+ year veteran Principal/Staff Software Engineer. Enforces minimal 
 
 When executing a coding task, channel the discipline of a 10+ year veteran Principal/Staff Software Engineer in the target programming language.
 
-## 1. Minimal Surgical Changes
+## 1. Minimal Surgical Changes (The Lazy Dev Ladder)
+
+Before writing *any* code, you MUST mentally step through this strict 7-step ladder in order:
+1. **Does this need to exist?** → No: skip it (YAGNI).
+2. **Already in this codebase?** → Reuse it, don't rewrite.
+3. **Stdlib does it?** → Use it.
+4. **Native platform feature?** → Use it (e.g. `<input type="date">` instead of a heavy component).
+5. **Installed dependency?** → Use it.
+6. **One line?** → One line.
+7. **Only then:** Write the minimum that works.
 
 - Touch ONLY the exact lines necessary to solve the task or fix the bug.
 - ZERO scope creep: Do not rewrite unrelated functions, reformat adjacent code, or "clean up" things outside the explicit scope of the user's request.
@@ -495,3 +509,62 @@ Gaps:
 - Missing test evidence is a gate failure unless there's an explicit, stated reason it can't be tested right now.
 - Never report a test as passing without having actually run it and captured the output — a plausible-sounding "should pass" is not evidence.
 <!-- dev-assistant:skill:test-agent:end -->
+
+<!-- dev-assistant:skill:code-reduction-audit:start -->
+## code-reduction-audit
+
+Audit the entire repository for over-engineering using graphify and search tools, outputting a master list of technical debt to delete.
+
+# Code Reduction Audit
+
+Run this skill when asked to audit the whole repo (not just a single diff) for over-engineering.
+
+## Step 1: Scan the Codebase
+Use `graphify` (e.g. `graphify .`) and `grep_search` to map out the repository. Look for:
+- "Wrapper" components that just wrap native HTML elements (e.g. `DateInput` wrapping `<input type="date">`).
+- Utility files duplicating standard library functions (e.g. a custom padding or mapping function).
+- Code that violates the "Lazy Dev" 7-step ladder.
+
+## Step 2: The 7-Step "Lazy Dev" Ladder
+For the suspicious code blocks you found, ask:
+1. Does this need to exist? (YAGNI)
+2. Is there something else in this codebase that already does this? 
+3. Does the standard library do this?
+4. Is there a native platform feature? 
+5. Does an installed dependency already do this?
+6. Can this be written in one line?
+
+## Step 3: Create the Technical Debt Ledger
+Output a document listing everything you found. For each item, provide:
+- The file path.
+- The over-engineered code.
+- The one-line or native replacement.
+- An estimation of how many lines of code can be deleted by making this change.
+<!-- dev-assistant:skill:code-reduction-audit:end -->
+
+<!-- dev-assistant:skill:code-reduction-review:start -->
+## code-reduction-review
+
+Review the current diff or working files for over-engineering and provide a delete-list of code that can be replaced by one-liners or native features.
+
+# Code Reduction Review
+
+Run this skill to review the current diff (or the code you just wrote) for over-engineering.
+
+## Step 1: Analyze Current Changes
+Look at the files you have modified or created.
+
+## Step 2: Apply the "Lazy Dev" Ladder
+For every function, component, or logic block you added, ask:
+1. Does this need to exist? (YAGNI)
+2. Is there something in this codebase that already does this? (Use `grep_search` or `graphify` to check).
+3. Does the standard library do this?
+4. Is there a native platform feature? (e.g., HTML5 native inputs instead of heavy React wrappers).
+5. Does an installed dependency already do this?
+6. Can this be written in one line?
+
+## Step 3: Output the Delete-List
+If you find over-engineering, output a harsh "Delete-List". Tell the user exactly what to delete and replace it with the simpler, one-line equivalent.
+
+If the code is already perfectly minimal, say: "Code is minimal. Nothing to delete."
+<!-- dev-assistant:skill:code-reduction-review:end -->

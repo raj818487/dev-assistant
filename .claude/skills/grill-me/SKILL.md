@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+name: grill-me
 description: Deep requirements discovery through adversarial, one-question-at-a-time interviews that turn a rough feature idea into a decision-complete, implementation-ready spec before any design or code work begins. Grounds every question and every challenge in this project's real architecture rules, tech stack, and golden reference modules (auto-detected from a connected dev-assistant config.json, or from CLAUDE.md/AGENTS.md/architecture docs in the project). Produces .ai-work/REQUIREMENTS.md, PLAN.md, and PLAN-REVIEW-LOG.md with full REQ-###/AC-###/RISK-### traceability. Use this skill whenever the user pitches a new feature idea, says "grill me", "interview me about this", "help me think through the requirements", "let's nail down the spec before we build this", or wants a plan/spec for something feature-sized before writing any code — even if they don't name the skill directly and even if the idea sounds simple at first (simple-sounding features often hide the most unresolved decisions). Do not use for trivial, already-fully-specified changes like a one-line bug fix, a copy/typo fix, or a config value change — this skill is for feature-sized work where real requirements are still fuzzy.
 ---
 

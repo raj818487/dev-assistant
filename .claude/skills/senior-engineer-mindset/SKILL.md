@@ -1,6 +1,6 @@
 ---
+name: senior-engineer-mindset
 description: Act like a 10+ year veteran Principal/Staff Software Engineer. Enforces minimal surgical changes, zero scope creep, maximum code reuse, and idiomatic best practices.
-alwaysApply: true
 ---
 
 # Senior Engineer Mindset
