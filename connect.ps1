@@ -77,10 +77,13 @@ switch ($backendChoice) {
     }
     "2" {
         # Cursor doesn't expose a standalone LLM CLI — detect install, map to claude-cli backend
+        $cursorCmd = Get-Command cursor -ErrorAction SilentlyContinue
+        $cursorFromCmd = $null
+        if ($cursorCmd) { $cursorFromCmd = $cursorCmd.Source }
         $cursorPaths = @(
             "$env:LOCALAPPDATA\Programs\cursor\Cursor.exe",
             "$env:ProgramFiles\Cursor\Cursor.exe",
-            (Get-Command cursor -ErrorAction SilentlyContinue)?.Source
+            $cursorFromCmd
         ) | Where-Object { $_ -and (Test-Path $_) }
         if ($cursorPaths) {
             Write-Host "  [OK] Cursor detected at $($cursorPaths[0])" -ForegroundColor Green

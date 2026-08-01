@@ -1,6 +1,6 @@
 {
   "name": "omni-plugin",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "Install omni-plugin AI skills natively via CLI.",
   "main": "cli.js",
   "bin": {
