@@ -121,8 +121,21 @@ def gq(query: str, limit: int = 2000) -> str:
     return out[:limit] if len(out) > limit else out
 
 
-def _run_claude(prompt: str, timeout: int = 120) -> str:
-    """Send a prompt to Claude via temp-file stdin (avoids Windows CLI length limit)."""
+# ── LLM backend detection & execution ────────────────────────────────────────
+# Ordered list of (display_name, cmd_prefix)
+# server tries each in order until one succeeds.
+_LLM_BACKENDS = [
+    ("Claude CLI",      ["claude",      "--print"]),
+    ("Antigravity",     ["agy",         "--print"]),
+    ("Antigravity",     ["antigravity", "--print"]),
+]
+
+_active_backend: str = "none"   # updated on first successful call
+_backend_status: str = "detecting"   # detecting | ok | unavailable
+
+
+def _run_with_stdin(cmd: list, prompt: str, timeout: int = 120) -> str:
+    """Write prompt to a temp file and pipe it as stdin to avoid Windows CLI length limits."""
     tmp = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -132,14 +145,14 @@ def _run_claude(prompt: str, timeout: int = 120) -> str:
             tmp = f.name
         with open(tmp, "r", encoding="utf-8") as stdin_f:
             r = subprocess.run(
-                ["claude", "--print"],
+                cmd,
                 stdin=stdin_f,
                 capture_output=True, text=True, encoding="utf-8", errors="replace",
                 cwd=ROOT, timeout=timeout,
             )
         return (r.stdout or "").strip()
     except Exception as e:
-        return f"[claude error: {e}]"
+        return f"[error: {e}]"
     finally:
         if tmp:
             try:
@@ -148,8 +161,40 @@ def _run_claude(prompt: str, timeout: int = 120) -> str:
                 pass
 
 
-# _run_llm is an alias for _run_claude; kept for forward-compat if a new backend is added later.
-_run_llm = _run_claude
+def _run_llm(prompt: str, timeout: int = 120) -> str:
+    """Try each LLM backend in order. Returns first non-error response."""
+    global _active_backend, _backend_status
+    errors = []
+    for name, cmd in _LLM_BACKENDS:
+        result = _run_with_stdin(cmd, prompt, timeout=timeout)
+        failed = (
+            not result
+            or result.startswith("[error:")
+            or "not recognized" in result
+            or "not found" in result.lower()
+        )
+        if not failed:
+            _active_backend = name
+            _backend_status = "ok"
+            return result
+        errors.append(f"{name}: {result[:120]}")
+
+    _backend_status = "unavailable"
+    _active_backend = "none"
+    hint = (
+        "No AI CLI found. Install one of:\n"
+        "  • Claude Code CLI — https://claude.ai/download\n"
+        "  • Antigravity CLI — https://antigravity.dev\n\n"
+        "The knowledge graph is still active; ask about structure, "
+        "files, or paths and I’ll answer from the graph directly."
+    )
+    print("  [WARN] All LLM backends failed:\n  " + "\n  ".join(errors))
+    return hint
+
+
+# Keep _run_claude as an alias so existing callers don’t break
+def _run_claude(prompt: str, timeout: int = 120) -> str:
+    return _run_llm(prompt, timeout=timeout)
 
 
 # ── Entity name extraction (plan mode) ───────────────────────────────────────
@@ -534,8 +579,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .hdr-title{font-size:15px;font-weight:700;color:var(--heading)}
 .hdr-sub{font-size:11px;color:var(--text);opacity:.6;margin-top:1px}
 #audience{margin-left:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:12px;font-family:var(--sans);color:var(--heading);cursor:pointer}
-.badge{margin-left:10px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;color:var(--text)}
+.badge{margin-left:auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;color:var(--text)}
 .badge b{color:var(--accent)}
+.backend-pill{display:flex;align-items:center;gap:5px;margin-left:8px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;color:var(--text)}
+.backend-pill .dot{width:7px;height:7px;border-radius:50%;background:#ccc}
+.backend-pill.ok .dot{background:#2e7d52;box-shadow:0 0 0 2px #eaf4ee}
+.backend-pill.unavailable .dot{background:#c0392b;box-shadow:0 0 0 2px #fef3f2}
+.backend-pill.detecting .dot{background:#c0392b;animation:bop 1s infinite}
 .msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
 .msg{display:flex;gap:10px;max-width:820px}
 .msg.user{flex-direction:row-reverse;margin-left:auto}
@@ -597,6 +647,7 @@ textarea::placeholder{color:var(--text);opacity:.4}
     <option value="engineer">Engineer</option>
   </select>
   <div class="badge">graphify · <b id="nc">...</b> nodes</div>
+  <div class="backend-pill detecting" id="backend-pill"><div class="dot"></div><span id="backend-name">detecting...</span></div>
 </div>
 <div class="msgs" id="msgs">
   <div class="msg bot">
@@ -616,9 +667,22 @@ textarea::placeholder{color:var(--text);opacity:.4}
 <script>
 const inp=document.getElementById('inp'),msgs=document.getElementById('msgs'),btn=document.getElementById('send'),audienceSel=document.getElementById('audience');
 let convoHistory=[];
+fetch('/api/status').then(r=>r.json()).then(d=>{
+  document.getElementById('nc').textContent=d.nodes.toLocaleString();
+  document.getElementById('proj-title').textContent=d.project+' — omni-plugin';
+  const pill=document.getElementById('backend-pill');
+  const name=document.getElementById('backend-name');
+  if(d.backend_status==='ok'){
+    pill.className='backend-pill ok';name.textContent=d.backend;
+  } else if(d.backend_status==='unavailable'){
+    pill.className='backend-pill unavailable';name.textContent='no AI CLI';
+  } else {
+    pill.className='backend-pill detecting';name.textContent='detecting…';
+  }
+}).catch(()=>{});
 fetch('/api/info').then(r=>r.json()).then(d=>{
   document.getElementById('nc').textContent=d.nodes.toLocaleString();
-  document.getElementById('proj-title').textContent=d.project+' — dev-assistant';
+  document.getElementById('proj-title').textContent=d.project+' — omni-plugin';
 }).catch(()=>{});
 fetch('/api/getting-started').then(r=>r.json()).then(d=>{
   const wb=document.getElementById('welcome-bubble');
@@ -641,13 +705,38 @@ function addMsg(role,html){
   d.innerHTML=`<div class="av">${role==='user'?'👤':'🤖'}</div><div class="bubble">${html}</div>`;
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d;
 }
-const PROG={
-  plan:['Searching for similar patterns...','Analysing backend structure...','Analysing frontend structure...','Generating plan...'],
-  impact:['Tracing dependencies...','Mapping callers...','Assessing risk...','Writing safe steps...'],
-  explain:['Querying knowledge graph...','Reading result...','Writing explanation...'],
-  orient:['Reading project docs...','Building the overview...','Writing a clear answer...'],
-};
 let pt=null,pi=0;
+const PROG={
+  plan:[
+    'Reading project knowledge graph…',
+    'Searching for similar patterns…',
+    'Analysing backend structure…',
+    'Analysing frontend structure…',
+    'Sending to AI…',
+    'Generating plan…',
+  ],
+  impact:[
+    'Reading project knowledge graph…',
+    'Tracing dependencies…',
+    'Mapping callers…',
+    'Assessing risk…',
+    'Sending to AI…',
+    'Writing safe steps…',
+  ],
+  explain:[
+    'Reading project knowledge graph…',
+    'Querying knowledge graph…',
+    'Building context…',
+    'Sending to AI…',
+    'Writing explanation…',
+  ],
+  orient:[
+    'Reading project docs…',
+    'Building the overview…',
+    'Sending to AI…',
+    'Writing a clear answer…',
+  ],
+};
 function startProg(intent,el){
   const m=PROG[intent]||PROG.explain,el2=el&&el.querySelector('.prog-text');
   pi=0;if(el2)el2.textContent=m[0];
@@ -686,30 +775,48 @@ function intentLabel(intent){
   const [label,cls]=map[intent]||['ANSWER','explain'];
   return `<div class="intent-tag ${cls}">${label}</div>`;
 }
+function refreshBackendPill(){
+  fetch('/api/status').then(r=>r.json()).then(d=>{
+    const pill=document.getElementById('backend-pill');
+    const name=document.getElementById('backend-name');
+    if(d.backend_status==='ok'){pill.className='backend-pill ok';name.textContent=d.backend;}
+    else if(d.backend_status==='unavailable'){pill.className='backend-pill unavailable';name.textContent='no AI CLI';}
+    else{pill.className='backend-pill detecting';name.textContent='detecting…';}
+  }).catch(()=>{});
+}
+function guessIntent(q){
+  const ql=q.toLowerCase();
+  if(/\b(build|create|add|implement|make|develop|generate)\b/.test(ql))return 'plan';
+  if(/\b(break|impact|affect|change|risk|depend|caller)\b/.test(ql))return 'impact';
+  return 'explain';
+}
 async function send(){
   const q=inp.value.trim();if(!q||btn.disabled)return;
   document.getElementById('sugs').style.display='none';
   inp.value='';inp.style.height='auto';btn.disabled=true;
   addMsg('user',`<p>${q.replace(/</g,'&lt;')}</p>`);
   const td=document.createElement('div');td.className='msg bot typing';
-  td.innerHTML='<div class="av">🤖</div><div class="bubble"><div class="dots"><span></span><span></span><span></span></div><div class="prog-text">Analysing...</div></div>';
+  td.innerHTML='<div class="av">🤖</div><div class="bubble"><div class="dots"><span></span><span></span><span></span></div><div class="prog-text">Reading knowledge graph…</div></div>';
   msgs.appendChild(td);msgs.scrollTop=msgs.scrollHeight;
-  startProg('explain',td);
+  startProg(guessIntent(q),td);
   try{
     const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       question:q, history:convoHistory, audience:audienceSel.value
     })});
     const data=await res.json();
     stopProg();td.remove();
-    if(data.error){addMsg('bot',`<p>Error: ${data.error}</p>`);}
+    if(data.error){addMsg('bot',`<p>⚠️ ${data.error}</p>`);}
     else{
       addMsg('bot',intentLabel(data.intent)+renderMd(data.answer));
       convoHistory.push({role:'user',content:q});
       convoHistory.push({role:'assistant',content:data.answer});
       if(convoHistory.length>12)convoHistory=convoHistory.slice(-12);
     }
-  }catch(e){stopProg();td.remove();addMsg('bot','<p>Could not reach server. Is server.py running?</p>');}
+    refreshBackendPill();
+  }catch(e){stopProg();td.remove();addMsg('bot','<p>⚠️ Could not reach server. Is server.py running?</p>');}
+  btn.disabled=!inp.value.trim();
 }
+
 </script>
 </body>
 </html>"""
@@ -723,6 +830,14 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, "text/html; charset=utf-8", HTML.encode())
         elif self.path == "/api/info":
             payload = json.dumps({
+                "nodes": graph_node_count(),
+                "project": cfg.get("projectName", "Project"),
+            }).encode()
+            self._send(200, "application/json", payload)
+        elif self.path == "/api/status":
+            payload = json.dumps({
+                "backend": _active_backend,
+                "backend_status": _backend_status,
                 "nodes": graph_node_count(),
                 "project": cfg.get("projectName", "Project"),
             }).encode()
@@ -758,6 +873,7 @@ class Handler(BaseHTTPRequestHandler):
                            json.dumps({"error": str(e)}).encode())
         else:
             self._send(404, "text/plain", b"Not found")
+
 
     def do_OPTIONS(self):
         self.send_response(200)
