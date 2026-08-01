@@ -4,7 +4,11 @@
 
 Set-StrictMode -Off
 $ErrorActionPreference = "Stop"
-$HERE = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ($scriptPath) {
+    $HERE = Split-Path -Parent $scriptPath
+} else {
+    $HERE = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
 
 # Refresh PATH so graphify / claude / uv are visible even if just installed
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +

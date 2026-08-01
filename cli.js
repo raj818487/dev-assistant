@@ -14,7 +14,7 @@ try {
     const installScript = path.join(rootDir, 'install.ps1');
     const connectScript = path.join(rootDir, 'connect.ps1');
     execSync(`powershell -ExecutionPolicy Bypass -Command "Invoke-Expression ([System.IO.File]::ReadAllText('${installScript}', [System.Text.Encoding]::UTF8))"`, { stdio: 'inherit' });
-    execSync(`powershell -ExecutionPolicy Bypass -Command "Invoke-Expression ([System.IO.File]::ReadAllText('${connectScript}', [System.Text.Encoding]::UTF8))"`, { stdio: 'inherit' });
+    execSync(`powershell -ExecutionPolicy Bypass -Command "$scriptPath='${connectScript}'; Invoke-Expression ([System.IO.File]::ReadAllText($scriptPath, [System.Text.Encoding]::UTF8))"`, { stdio: 'inherit' });
   } else {
     const installScript = path.join(rootDir, 'install.sh');
     const connectScript = path.join(rootDir, 'connect.sh');

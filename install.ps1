@@ -75,7 +75,7 @@ if ($gf) {
 
 # ── PDF/DOCX export deps ────────────────────────────────────────────────────
 Write-Host "  Installing dependencies (markdown, xhtml2pdf, python-docx, watchdog)..." -ForegroundColor Cyan
-python -m pip install --quiet markdown xhtml2pdf python-docx watchdog
+python -m pip install markdown xhtml2pdf python-docx watchdog
 if ($?) {
     Write-Host "  [OK] docs export ready (PDF/DOCX)" -ForegroundColor Green
 } else {

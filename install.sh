@@ -56,7 +56,7 @@ fi
 
 # docs export deps
 echo "  Installing dependencies (markdown, xhtml2pdf, python-docx, watchdog)..."
-python3 -m pip install --quiet markdown xhtml2pdf python-docx watchdog && echo "  [OK] docs export ready (PDF/DOCX)" \
+python3 -m pip install markdown xhtml2pdf python-docx watchdog && echo "  [OK] docs export ready (PDF/DOCX)" \
   || echo "  [WARN] docs export deps failed to install — PDF/DOCX export won't work."
 
 echo ""
