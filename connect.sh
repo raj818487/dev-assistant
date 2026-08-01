@@ -11,7 +11,8 @@ echo "  ----------------------------------------"
 echo ""
 
 # 1. Two questions
-read -rp "  Project path (absolute): " PROJECT_ROOT
+PROJECT_ROOT="$PWD"
+echo "  Project path: $PROJECT_ROOT"
 PROJECT_ROOT="${PROJECT_ROOT//\"/}"
 if [ ! -d "$PROJECT_ROOT" ]; then
   echo "  ERROR: path not found: $PROJECT_ROOT"; exit 1

@@ -20,7 +20,8 @@ Write-Host "  ----------------------------------------"
 Write-Host ""
 
 # ── 1. Two questions ──────────────────────────────────────────────────────────
-$projectRoot = (Read-Host "  Project path (absolute)").Trim().Trim('"')
+$projectRoot = $PWD.Path
+Write-Host "  Project path: $projectRoot" -ForegroundColor Cyan
 if (-not (Test-Path $projectRoot)) {
     Write-Host "  ERROR: path not found." -ForegroundColor Red; exit 1
 }

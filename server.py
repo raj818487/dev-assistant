@@ -27,7 +27,7 @@ def load_config() -> dict:
         print(f"  We looked for: {os.path.join(os.getcwd(), 'dev-assistant.json')}")
         print(f"  Make sure you run `npx dev-assistant serve` from the root of your project.")
         sys.exit(1)
-    with open(CONFIG_PATH, encoding="utf-8") as f:
+    with open(CONFIG_PATH, encoding="utf-8-sig") as f:
         return json.load(f)
 
 cfg  = load_config()
