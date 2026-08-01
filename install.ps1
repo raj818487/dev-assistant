@@ -73,6 +73,16 @@ if ($gf) {
     Write-Host "  [WARN] graphify installed but not in PATH. Open a new terminal." -ForegroundColor Yellow
 }
 
+# ── PDF/DOCX export deps ────────────────────────────────────────────────────
+Write-Host "  Installing dependencies (markdown, xhtml2pdf, python-docx, watchdog)..." -ForegroundColor Cyan
+python -m pip install --quiet markdown xhtml2pdf python-docx watchdog
+if ($?) {
+    Write-Host "  [OK] docs export ready (PDF/DOCX)" -ForegroundColor Green
+} else {
+    Write-Host "  [WARN] docs export deps failed to install — PDF/DOCX export won't work." -ForegroundColor Yellow
+}
+
 Write-Host ""
 Write-Host "  Done. Next step: .\connect.ps1" -ForegroundColor Green
 Write-Host ""
+

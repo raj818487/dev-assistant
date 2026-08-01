@@ -122,6 +122,22 @@ fi
 # 5. Write config.json
 echo "  [3/4] Writing config.json..."
 
+# Inject mandatory anti-regression and senior engineer rules
+ARCH_RULES=$(echo "$ARCH_RULES" | python3 -c '
+import sys, json
+try:
+    rules = json.load(sys.stdin)
+    if not isinstance(rules, list): rules = []
+except:
+    rules = []
+rules.extend([
+    "NEVER_BREAK_EXISTING_FUNCTIONALITY: Every code change must preserve existing working behavior, preserve public API contracts/signatures, and pass graphify regression checks before finishing.",
+    "ALWAYS_VERIFY_LATEST_CONTEXT: AI agents must query the latest graphify codebase graph and inspect dependent modules before modifying files.",
+    "SENIOR_ENGINEER_SURGICAL_EDITS: Write code like a 10+ year senior engineer in the language—make minimal surgical edits, maximize reuse of existing project utilities, and avoid unnecessary refactoring."
+])
+print(json.dumps(rules))
+')
+
 cat > "$HERE/config.json" <<EOF
 {
   "projectName": "$PROJECT_NAME",
@@ -146,6 +162,32 @@ echo "  [4/4] Installing files into project..."
 
 [ ! -f "$PROJECT_ROOT/.graphifyignore" ] && cp "$HERE/templates/graphifyignore" "$PROJECT_ROOT/.graphifyignore" && echo "  .graphifyignore installed."
 
+# Auto-Gitignore
+GITIGNORE="$PROJECT_ROOT/.gitignore"
+if [ -f "$GITIGNORE" ]; then
+  if ! grep -q "graphify-out" "$GITIGNORE"; then
+    printf "\n# --- AI & dev-assistant ignores ---\ngraphify-out/\n.claude/projects/\n" >> "$GITIGNORE"
+    echo "  .gitignore updated with AI ignores."
+  fi
+else
+  printf "\n# --- AI & dev-assistant ignores ---\ngraphify-out/\n.claude/projects/\n" > "$GITIGNORE"
+  echo "  .gitignore created with AI ignores."
+fi
+
+# Git Hook Installer
+GITHOOKS="$PROJECT_ROOT/.git/hooks"
+if [ -d "$GITHOOKS" ]; then
+  for HOOK in post-merge post-checkout; do
+    if [ ! -f "$GITHOOKS/$HOOK" ]; then
+      printf "#!/bin/sh\ngraphify . --backend claude-cli > /dev/null 2>&1 &\n" > "$GITHOOKS/$HOOK"
+      chmod +x "$GITHOOKS/$HOOK"
+      echo "  Git hook installed: $HOOK"
+    fi
+  done
+fi
+cp "$HERE/docs_export.py" "$PROJECT_ROOT/docs_export.py"
+echo "  docs_export.py installed."
+
 WF_DIR="$PROJECT_ROOT/.claude/workflows"
 mkdir -p "$WF_DIR"
 
@@ -161,6 +203,23 @@ for WF in update-project-memory.js feature-docs.js; do
     echo "  Workflow installed: $WF"
   fi
 done
+
+# Skills (e.g. grill-me, context-loader, pattern-clone, db-design, code-review-quality, test-agent)
+SKILLS_SRC_DIR="$HERE/templates/skills"
+if [ -d "$SKILLS_SRC_DIR" ]; then
+  for skillDir in "$SKILLS_SRC_DIR"/*/; do
+    [ -d "$skillDir" ] || continue
+    skillName=$(basename "$skillDir")
+    dst="$PROJECT_ROOT/.claude/skills/$skillName"
+    mkdir -p "$dst"
+    cp -r "$skillDir"* "$dst/"
+    echo "  Skill installed: $skillName"
+  done
+
+  # Fan out the same skills to Cursor / Copilot / Gemini / Codex
+  python3 "$HERE/generate_agent_adapters.py" --project-root "$PROJECT_ROOT" | sed 's/^/  /'
+  echo "  Agent adapters generated (Cursor, Copilot, Gemini, Codex)."
+fi
 
 # 7. COMMANDS.md
 TODAY=$(date +%Y-%m-%d)
@@ -188,6 +247,23 @@ Workflow({ name: 'update-project-memory', args: { date: '$TODAY' } })
 ## Generate feature docs (in Claude Code chat)
 \`\`\`
 Workflow({ name: 'feature-docs', args: { feature: 'Your Feature Name', date: '$TODAY' } })
+\`\`\`
+
+## Export generated docs as PDF / DOCX
+\`\`\`bash
+cd "$PROJECT_ROOT"
+python docs_export.py "docs/specs/<feature-slug>-*.md" --formats pdf,docx
+\`\`\`
+
+## Installed Claude Code skills
+grill-me, context-loader, pattern-clone, db-design, code-review-quality, test-agent
+(auto-discovered from .claude/skills/ -- no slash command needed, Claude decides when to use them)
+
+## Re-generate Cursor / Copilot / Gemini / Codex adapters
+(run after editing any skill under .claude/skills/)
+\`\`\`bash
+cd "$HERE"
+python3 generate_agent_adapters.py --project-root "$PROJECT_ROOT"
 \`\`\`
 EOF
 echo "  COMMANDS.md written."

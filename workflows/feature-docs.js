@@ -6,12 +6,18 @@ export const meta = {
     { title: 'Requirements',  detail: 'Generate spec, acceptance criteria, and UI map in parallel' },
     { title: 'Gap Analysis',  detail: 'Compare spec vs implementation and score gaps' },
     { title: 'Write & Memory',detail: 'Write docs and update AI agent memory' },
+    { title: 'Export',        detail: 'Convert docs to PDF / DOCX (if requested)' },
   ],
 };
 
 // Usage (in Claude Code chat):
 //   Workflow({ name: 'feature-docs', args: { feature: 'User Management', date: '2026-06-28' } })
 //   Workflow({ name: 'feature-docs', args: 'User Management' })
+//
+// Also export the generated docs as PDF and/or DOCX (requires docs_export.py,
+// installed by connect.ps1 / connect.sh, and its pip deps from install.ps1/.sh):
+//   Workflow({ name: 'feature-docs', args: { feature: 'User Management', formats: ['pdf'] } })
+//   Workflow({ name: 'feature-docs', args: { feature: 'User Management', formats: ['pdf', 'docx'] } })
 //
 // connect.ps1 / connect.sh fills in __PROJECT_ROOT__, __MEMORY_DIR__,
 // __PROJECT_NAME__, __TECH_STACK__ when copying this to the target project.
@@ -22,6 +28,9 @@ const feature = (rawArg && typeof rawArg === 'object' && rawArg.feature)
   : (typeof rawArg === 'string' ? rawArg : 'unknown');
 const dateStr = (rawArg && rawArg.date) ? rawArg.date : 'today';
 const slug    = feature.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const formats = (rawArg && typeof rawArg === 'object' && Array.isArray(rawArg.formats))
+  ? rawArg.formats.filter(f => f === 'pdf' || f === 'docx')
+  : [];
 
 const REPO       = '__PROJECT_ROOT__';
 const MEMORY_DIR = '__MEMORY_DIR__';
@@ -302,11 +311,34 @@ Use Read, Write, and Edit tools only.`,
 
 log('All docs written. Memory updated.');
 
+// ─── Phase 5: Export (optional) ───────────────────────────────────────────────
+phase('Export');
+
+let exportedFiles = [];
+if (formats.length) {
+  const exporterPath = repoSep('docs_export.py');
+  const globPattern  = `docs/specs/${slug}-*.md`;
+  const result = await agent(
+    `Run this exact command using the Bash (or PowerShell) tool, with working directory ${REPO}:
+
+python "${exporterPath}" "${globPattern}" --formats ${formats.join(',')}
+
+If "python" is not found, try "python3". Report the command's stdout/stderr verbatim.
+Do not attempt to write or convert any files yourself — only run the command and report its output.`,
+    { label: 'export:docs', phase: 'Export' }
+  );
+  log(`Export output:\n${result}`);
+  exportedFiles = formats.map(f => `docs/specs/${slug}-*.${f}`);
+} else {
+  log('No export formats requested — skipping PDF/DOCX export.');
+}
+
 return {
   feature,
   slug,
   project: PROJECT,
   docs: { specPath, acceptPath, uiPath, gapPath },
+  exportedFiles,
   implementedCount: discovery.implementedFiles.length,
   gapCount: gapData.missing.length,
   riskScore: gapData.riskScore,

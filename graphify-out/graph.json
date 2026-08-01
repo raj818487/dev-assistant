@@ -1,0 +1,1820 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "dev_assistant_setup_scripts_flow",
+        "label": "Project setup flow: install then connect then run",
+        "nodes": [
+          "dev_assistant_readme_install_ps1",
+          "dev_assistant_readme_connect_ps1",
+          "dev_assistant_readme_server_py",
+          "dev_assistant_readme_config_json"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 0.9,
+        "source_file": "README.md"
+      },
+      {
+        "id": "dev_assistant_feature_docs_outputs",
+        "label": "feature-docs workflow generated documentation set",
+        "nodes": [
+          "dev_assistant_readme_feature_spec_md",
+          "dev_assistant_readme_feature_acceptance_md",
+          "dev_assistant_readme_feature_ui_map_md",
+          "dev_assistant_readme_feature_gap_analysis_md"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 0.9,
+        "source_file": "README.md"
+      },
+      {
+        "id": "dev_assistant_query_intents",
+        "label": "Supported assistant query intents",
+        "nodes": [
+          "dev_assistant_readme_implementation_planning_chatbot",
+          "dev_assistant_readme_change_impact_analysis",
+          "dev_assistant_readme_codebase_qa",
+          "dev_assistant_readme_intent_detection"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 0.9,
+        "source_file": "README.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "connect.ps1",
+      "file_type": "code",
+      "source_file": "connect.ps1",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "connect_ps1_connect",
+      "community": 9,
+      "norm_label": "connect.ps1"
+    },
+    {
+      "label": "connect.sh",
+      "file_type": "code",
+      "source_file": "connect.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "connect_sh_connect",
+      "community": 8,
+      "norm_label": "connect.sh"
+    },
+    {
+      "label": "connect.sh script",
+      "file_type": "code",
+      "source_file": "connect.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "d_other_project_dev_assistant_connect_sh__entry",
+      "community": 8,
+      "norm_label": "connect.sh script"
+    },
+    {
+      "label": "install.ps1",
+      "file_type": "code",
+      "source_file": "install.ps1",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "install_ps1_install",
+      "community": 10,
+      "norm_label": "install.ps1"
+    },
+    {
+      "label": "install.sh",
+      "file_type": "code",
+      "source_file": "install.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "install_sh_install",
+      "community": 7,
+      "norm_label": "install.sh"
+    },
+    {
+      "label": "install.sh script",
+      "file_type": "code",
+      "source_file": "install.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "d_other_project_dev_assistant_install_sh__entry",
+      "community": 7,
+      "norm_label": "install.sh script"
+    },
+    {
+      "label": "PATH",
+      "file_type": "code",
+      "source_file": "install.sh",
+      "source_location": "L13",
+      "metadata": {
+        "language": "bash",
+        "kind": "code"
+      },
+      "_origin": "ast",
+      "id": "install_path",
+      "community": 7,
+      "norm_label": "path"
+    },
+    {
+      "label": "server.py",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "server",
+      "community": 0,
+      "norm_label": "server.py"
+    },
+    {
+      "label": "load_config()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "server_load_config",
+      "community": 0,
+      "norm_label": "load_config()"
+    },
+    {
+      "label": "detect_intent()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L71",
+      "_origin": "ast",
+      "id": "server_detect_intent",
+      "community": 0,
+      "norm_label": "detect_intent()"
+    },
+    {
+      "label": "_run()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L81",
+      "_origin": "ast",
+      "id": "server_run",
+      "community": 0,
+      "norm_label": "_run()"
+    },
+    {
+      "label": "gq()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "server_gq",
+      "community": 0,
+      "norm_label": "gq()"
+    },
+    {
+      "label": "_run_claude()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L100",
+      "_origin": "ast",
+      "id": "server_run_claude",
+      "community": 0,
+      "norm_label": "_run_claude()"
+    },
+    {
+      "label": "extract_entity_name()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L128",
+      "_origin": "ast",
+      "id": "server_extract_entity_name",
+      "community": 0,
+      "norm_label": "extract_entity_name()"
+    },
+    {
+      "label": "gather_context()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L153",
+      "_origin": "ast",
+      "id": "server_gather_context",
+      "community": 0,
+      "norm_label": "gather_context()"
+    },
+    {
+      "label": "build_plan_prompt()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L168",
+      "_origin": "ast",
+      "id": "server_build_plan_prompt",
+      "community": 0,
+      "norm_label": "build_plan_prompt()"
+    },
+    {
+      "label": "build_impact_prompt()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L219",
+      "_origin": "ast",
+      "id": "server_build_impact_prompt",
+      "community": 0,
+      "norm_label": "build_impact_prompt()"
+    },
+    {
+      "label": "build_explain_prompt()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L249",
+      "_origin": "ast",
+      "id": "server_build_explain_prompt",
+      "community": 0,
+      "norm_label": "build_explain_prompt()"
+    },
+    {
+      "label": "handle_question()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L265",
+      "_origin": "ast",
+      "id": "server_handle_question",
+      "community": 0,
+      "norm_label": "handle_question()"
+    },
+    {
+      "label": "graph_node_count()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L285",
+      "_origin": "ast",
+      "id": "server_graph_node_count",
+      "community": 3,
+      "norm_label": "graph_node_count()"
+    },
+    {
+      "label": "Handler",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L486",
+      "_origin": "ast",
+      "id": "server_handler",
+      "community": 3,
+      "norm_label": "handler"
+    },
+    {
+      "label": "BaseHTTPRequestHandler",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "basehttprequesthandler",
+      "community": 3,
+      "norm_label": "basehttprequesthandler"
+    },
+    {
+      "label": ".do_GET()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L488",
+      "_origin": "ast",
+      "id": "server_handler_do_get",
+      "community": 3,
+      "norm_label": ".do_get()"
+    },
+    {
+      "label": ".do_POST()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L500",
+      "_origin": "ast",
+      "id": "server_handler_do_post",
+      "community": 3,
+      "norm_label": ".do_post()"
+    },
+    {
+      "label": ".do_OPTIONS()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L519",
+      "_origin": "ast",
+      "id": "server_handler_do_options",
+      "community": 3,
+      "norm_label": ".do_options()"
+    },
+    {
+      "label": "._send()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L527",
+      "_origin": "ast",
+      "id": "server_handler_send",
+      "community": 3,
+      "norm_label": "._send()"
+    },
+    {
+      "label": ".log_message()",
+      "file_type": "code",
+      "source_file": "server.py",
+      "source_location": "L535",
+      "_origin": "ast",
+      "id": "server_handler_log_message",
+      "community": 3,
+      "norm_label": ".log_message()"
+    },
+    {
+      "label": "Run a command, optionally with stdin. Returns stdout+stderr as string.",
+      "file_type": "rationale",
+      "source_file": "server.py",
+      "source_location": "L82",
+      "_origin": "ast",
+      "id": "server_rationale_82",
+      "community": 0,
+      "norm_label": "run a command, optionally with stdin. returns stdout+stderr as string."
+    },
+    {
+      "label": "Query the graphify knowledge graph.",
+      "file_type": "rationale",
+      "source_file": "server.py",
+      "source_location": "L95",
+      "_origin": "ast",
+      "id": "server_rationale_95",
+      "community": 0,
+      "norm_label": "query the graphify knowledge graph."
+    },
+    {
+      "label": "Send a prompt to Claude via temp-file stdin (avoids Windows CLI length limit).",
+      "file_type": "rationale",
+      "source_file": "server.py",
+      "source_location": "L101",
+      "_origin": "ast",
+      "id": "server_rationale_101",
+      "community": 0,
+      "norm_label": "send a prompt to claude via temp-file stdin (avoids windows cli length limit)."
+    },
+    {
+      "label": "feature-docs.js",
+      "file_type": "code",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "workflows_feature_docs",
+      "community": 6,
+      "norm_label": "feature-docs.js"
+    },
+    {
+      "label": "meta",
+      "file_type": "code",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "workflows_feature_docs_meta",
+      "community": 6,
+      "norm_label": "meta"
+    },
+    {
+      "label": "slug",
+      "file_type": "code",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "workflows_feature_docs_slug",
+      "community": 6,
+      "norm_label": "slug"
+    },
+    {
+      "label": "DISCOVERY_SCHEMA",
+      "file_type": "code",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "workflows_feature_docs_discovery_schema",
+      "community": 6,
+      "norm_label": "discovery_schema"
+    },
+    {
+      "label": "GAP_SCHEMA",
+      "file_type": "code",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L148",
+      "_origin": "ast",
+      "id": "workflows_feature_docs_gap_schema",
+      "community": 6,
+      "norm_label": "gap_schema"
+    },
+    {
+      "label": "repoSep()",
+      "file_type": "code",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L243",
+      "_origin": "ast",
+      "id": "workflows_feature_docs_reposep",
+      "community": 6,
+      "norm_label": "reposep()"
+    },
+    {
+      "label": "update-project-memory.js",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory",
+      "community": 5,
+      "norm_label": "update-project-memory.js"
+    },
+    {
+      "label": "meta",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory_meta",
+      "community": 5,
+      "norm_label": "meta"
+    },
+    {
+      "label": "FEATURES_SCHEMA",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory_features_schema",
+      "community": 5,
+      "norm_label": "features_schema"
+    },
+    {
+      "label": "SUMMARY_SCHEMA",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L75",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory_summary_schema",
+      "community": 5,
+      "norm_label": "summary_schema"
+    },
+    {
+      "label": "valid",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L112",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory_valid",
+      "community": 5,
+      "norm_label": "valid"
+    },
+    {
+      "label": "complete",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L118",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory_complete",
+      "community": 5,
+      "norm_label": "complete"
+    },
+    {
+      "label": "partial",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L119",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory_partial",
+      "community": 5,
+      "norm_label": "partial"
+    },
+    {
+      "label": "stub",
+      "file_type": "code",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L120",
+      "_origin": "ast",
+      "id": "workflows_update_project_memory_stub",
+      "community": 5,
+      "norm_label": "stub"
+    },
+    {
+      "label": "dev-assistant",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_dev_assistant",
+      "community": 4,
+      "norm_label": "dev-assistant"
+    },
+    {
+      "label": "graphify",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_graphify",
+      "community": 4,
+      "norm_label": "graphify"
+    },
+    {
+      "label": "install.ps1",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_install_ps1",
+      "community": 4,
+      "norm_label": "install.ps1"
+    },
+    {
+      "label": "install.sh",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_install_sh",
+      "community": 4,
+      "norm_label": "install.sh"
+    },
+    {
+      "label": "connect.ps1",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_connect_ps1",
+      "community": 1,
+      "norm_label": "connect.ps1"
+    },
+    {
+      "label": "connect.sh",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_connect_sh",
+      "community": 1,
+      "norm_label": "connect.sh"
+    },
+    {
+      "label": "config.json",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_config_json",
+      "community": 1,
+      "norm_label": "config.json"
+    },
+    {
+      "label": "server.py",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_server_py",
+      "community": 1,
+      "norm_label": "server.py"
+    },
+    {
+      "label": "Claude CLI / Claude Code",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_claude_cli",
+      "community": 4,
+      "norm_label": "claude cli / claude code"
+    },
+    {
+      "label": "Implementation planning chatbot",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_implementation_planning_chatbot",
+      "community": 1,
+      "norm_label": "implementation planning chatbot"
+    },
+    {
+      "label": "Change impact analysis",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_change_impact_analysis",
+      "community": 1,
+      "norm_label": "change impact analysis"
+    },
+    {
+      "label": "Codebase Q&A",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_codebase_qa",
+      "community": 1,
+      "norm_label": "codebase q&a"
+    },
+    {
+      "label": "AI context workflows",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_ai_context_workflows",
+      "community": 2,
+      "norm_label": "ai context workflows"
+    },
+    {
+      "label": "update-project-memory workflow",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_update_project_memory_workflow",
+      "community": 2,
+      "norm_label": "update-project-memory workflow"
+    },
+    {
+      "label": "feature-docs workflow",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_feature_docs_workflow",
+      "community": 2,
+      "norm_label": "feature-docs workflow"
+    },
+    {
+      "label": "workflows/ directory",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_workflows_dir",
+      "community": 2,
+      "norm_label": "workflows/ directory"
+    },
+    {
+      "label": "graph.json (graphify-out)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_graph_json",
+      "community": 1,
+      "norm_label": "graph.json (graphify-out)"
+    },
+    {
+      "label": "COMMANDS.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_commands_md",
+      "community": 1,
+      "norm_label": "commands.md"
+    },
+    {
+      "label": "docs/specs/ output directory",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_docs_specs_dir",
+      "community": 2,
+      "norm_label": "docs/specs/ output directory"
+    },
+    {
+      "label": "<feature>-spec.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_feature_spec_md",
+      "community": 2,
+      "norm_label": "<feature>-spec.md"
+    },
+    {
+      "label": "<feature>-acceptance.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_feature_acceptance_md",
+      "community": 2,
+      "norm_label": "<feature>-acceptance.md"
+    },
+    {
+      "label": "<feature>-ui-map.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_feature_ui_map_md",
+      "community": 2,
+      "norm_label": "<feature>-ui-map.md"
+    },
+    {
+      "label": "<feature>-gap-analysis.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_feature_gap_analysis_md",
+      "community": 2,
+      "norm_label": "<feature>-gap-analysis.md"
+    },
+    {
+      "label": "graphify query command",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_graphify_query",
+      "community": 1,
+      "norm_label": "graphify query command"
+    },
+    {
+      "label": "Intent detection (plan / impact / explain)",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_intent_detection",
+      "community": 1,
+      "norm_label": "intent detection (plan / impact / explain)"
+    },
+    {
+      "label": "graphify hook install",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_graphify_hook_install",
+      "community": 1,
+      "norm_label": "graphify hook install"
+    },
+    {
+      "label": "Python 3.10+",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_python",
+      "community": 4,
+      "norm_label": "python 3.10+"
+    },
+    {
+      "label": "uv (Astral)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_uv",
+      "community": 4,
+      "norm_label": "uv (astral)"
+    },
+    {
+      "label": "graphifyy (PyPI package)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dev_assistant_readme_graphifyy_package",
+      "community": 4,
+      "norm_label": "graphifyy (pypi package)"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "connect.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "connect_sh_connect",
+      "target": "d_other_project_dev_assistant_connect_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "install.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "install_sh_install",
+      "target": "d_other_project_dev_assistant_install_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "install.sh",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "install_sh_install",
+      "target": "install_path",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L249",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_build_explain_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L219",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_build_impact_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L168",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_build_plan_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_detect_intent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L128",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_extract_entity_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_gather_context",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_gq",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L285",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_graph_node_count",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L265",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_handle_question",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L486",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_handler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_load_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "server",
+      "target": "server_run_claude",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L266",
+      "weight": 1.0,
+      "source": "server_handle_question",
+      "target": "server_detect_intent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "server_gq",
+      "target": "server_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "server_rationale_82",
+      "target": "server_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L156",
+      "weight": 1.0,
+      "source": "server_gather_context",
+      "target": "server_gq",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L95",
+      "weight": 1.0,
+      "source": "server_rationale_95",
+      "target": "server_gq",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "server_extract_entity_name",
+      "target": "server_run_claude",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L277",
+      "weight": 1.0,
+      "source": "server_handle_question",
+      "target": "server_run_claude",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "server_rationale_101",
+      "target": "server_run_claude",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L270",
+      "weight": 1.0,
+      "source": "server_handle_question",
+      "target": "server_extract_entity_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L267",
+      "weight": 1.0,
+      "source": "server_handle_question",
+      "target": "server_gather_context",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L271",
+      "weight": 1.0,
+      "source": "server_handle_question",
+      "target": "server_build_plan_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L273",
+      "weight": 1.0,
+      "source": "server_handle_question",
+      "target": "server_build_impact_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L275",
+      "weight": 1.0,
+      "source": "server_handle_question",
+      "target": "server_build_explain_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L510",
+      "weight": 1.0,
+      "source": "server_handler_do_post",
+      "target": "server_handle_question",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L493",
+      "weight": 1.0,
+      "source": "server_handler_do_get",
+      "target": "server_graph_node_count",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L486",
+      "weight": 1.0,
+      "source": "server_handler",
+      "target": "basehttprequesthandler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L488",
+      "weight": 1.0,
+      "source": "server_handler",
+      "target": "server_handler_do_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L519",
+      "weight": 1.0,
+      "source": "server_handler",
+      "target": "server_handler_do_options",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L500",
+      "weight": 1.0,
+      "source": "server_handler",
+      "target": "server_handler_do_post",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L535",
+      "weight": 1.0,
+      "source": "server_handler",
+      "target": "server_handler_log_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L527",
+      "weight": 1.0,
+      "source": "server_handler",
+      "target": "server_handler_send",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L490",
+      "weight": 1.0,
+      "source": "server_handler_do_get",
+      "target": "server_handler_send",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.py",
+      "source_location": "L507",
+      "weight": 1.0,
+      "source": "server_handler_do_post",
+      "target": "server_handler_send",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "workflows_feature_docs",
+      "target": "workflows_feature_docs_discovery_schema",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "workflows_feature_docs",
+      "target": "workflows_feature_docs_gap_schema",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "workflows_feature_docs",
+      "target": "workflows_feature_docs_meta",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L243",
+      "weight": 1.0,
+      "source": "workflows_feature_docs",
+      "target": "workflows_feature_docs_reposep",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/feature-docs.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "workflows_feature_docs",
+      "target": "workflows_feature_docs_slug",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L118",
+      "weight": 1.0,
+      "source": "workflows_update_project_memory",
+      "target": "workflows_update_project_memory_complete",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "workflows_update_project_memory",
+      "target": "workflows_update_project_memory_features_schema",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "workflows_update_project_memory",
+      "target": "workflows_update_project_memory_meta",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "workflows_update_project_memory",
+      "target": "workflows_update_project_memory_partial",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "workflows_update_project_memory",
+      "target": "workflows_update_project_memory_stub",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "workflows_update_project_memory",
+      "target": "workflows_update_project_memory_summary_schema",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "workflows/update-project-memory.js",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "workflows_update_project_memory",
+      "target": "workflows_update_project_memory_valid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_dev_assistant",
+      "target": "dev_assistant_readme_claude_cli"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_dev_assistant",
+      "target": "dev_assistant_readme_graphify"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_dev_assistant",
+      "target": "dev_assistant_readme_install_ps1"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_dev_assistant",
+      "target": "dev_assistant_readme_install_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_dev_assistant",
+      "target": "dev_assistant_readme_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_dev_assistant",
+      "target": "dev_assistant_readme_uv"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_graphify",
+      "target": "dev_assistant_readme_graphifyy_package"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_install_ps1",
+      "target": "dev_assistant_readme_graphify"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_install_ps1",
+      "target": "dev_assistant_readme_claude_cli"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_install_ps1",
+      "target": "dev_assistant_readme_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_install_sh",
+      "target": "dev_assistant_readme_claude_cli"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_connect_ps1",
+      "target": "dev_assistant_readme_commands_md"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_connect_ps1",
+      "target": "dev_assistant_readme_config_json"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_connect_ps1",
+      "target": "dev_assistant_readme_graph_json"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_connect_ps1",
+      "target": "dev_assistant_readme_workflows_dir"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_connect_sh",
+      "target": "dev_assistant_readme_config_json"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_server_py",
+      "target": "dev_assistant_readme_config_json"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_change_impact_analysis",
+      "target": "dev_assistant_readme_server_py"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_codebase_qa",
+      "target": "dev_assistant_readme_server_py"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_implementation_planning_chatbot",
+      "target": "dev_assistant_readme_server_py"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_server_py",
+      "target": "dev_assistant_readme_claude_cli"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_server_py",
+      "target": "dev_assistant_readme_graphify_query"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_server_py",
+      "target": "dev_assistant_readme_intent_detection"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_update_project_memory_workflow",
+      "target": "dev_assistant_readme_claude_cli"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_ai_context_workflows",
+      "target": "dev_assistant_readme_feature_docs_workflow"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_ai_context_workflows",
+      "target": "dev_assistant_readme_update_project_memory_workflow"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_workflows_dir",
+      "target": "dev_assistant_readme_update_project_memory_workflow"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_feature_docs_workflow",
+      "target": "dev_assistant_readme_docs_specs_dir"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_workflows_dir",
+      "target": "dev_assistant_readme_feature_docs_workflow"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_graphify_hook_install",
+      "target": "dev_assistant_readme_graph_json"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_graphify_query",
+      "target": "dev_assistant_readme_graph_json"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_docs_specs_dir",
+      "target": "dev_assistant_readme_feature_acceptance_md"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_docs_specs_dir",
+      "target": "dev_assistant_readme_feature_gap_analysis_md"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_docs_specs_dir",
+      "target": "dev_assistant_readme_feature_spec_md"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_docs_specs_dir",
+      "target": "dev_assistant_readme_feature_ui_map_md"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "dev_assistant_readme_uv",
+      "target": "dev_assistant_readme_graphifyy_package"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "dev_assistant_setup_scripts_flow",
+      "label": "Project setup flow: install then connect then run",
+      "nodes": [
+        "dev_assistant_readme_install_ps1",
+        "dev_assistant_readme_connect_ps1",
+        "dev_assistant_readme_server_py",
+        "dev_assistant_readme_config_json"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.9,
+      "source_file": "README.md"
+    },
+    {
+      "id": "dev_assistant_feature_docs_outputs",
+      "label": "feature-docs workflow generated documentation set",
+      "nodes": [
+        "dev_assistant_readme_feature_spec_md",
+        "dev_assistant_readme_feature_acceptance_md",
+        "dev_assistant_readme_feature_ui_map_md",
+        "dev_assistant_readme_feature_gap_analysis_md"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.9,
+      "source_file": "README.md"
+    },
+    {
+      "id": "dev_assistant_query_intents",
+      "label": "Supported assistant query intents",
+      "nodes": [
+        "dev_assistant_readme_implementation_planning_chatbot",
+        "dev_assistant_readme_change_impact_analysis",
+        "dev_assistant_readme_codebase_qa",
+        "dev_assistant_readme_intent_detection"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.9,
+      "source_file": "README.md"
+    }
+  ],
+  "built_at_commit": "977e4822759b1e17b5da7ba08293ba11152393df"
+}

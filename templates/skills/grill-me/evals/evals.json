@@ -1,0 +1,38 @@
+{
+  "skill_name": "grill-me",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "grill me on this: I want to add a 'bulk import' feature so admins can upload a CSV of customers instead of adding them one at a time",
+      "expected_output": "Claude asks exactly one focused question first (not a list), grounds it in the project's real architecture/tech stack if a config.json or CLAUDE.md is discoverable, and does not start writing REQUIREMENTS.md or any code before the interview is resolved.",
+      "files": [],
+      "expectations": [
+        "Only one question is asked in the first turn",
+        "Claude attempts to load project context (config.json, CLAUDE.md, or AGENTS.md) before or during the first question",
+        "No code files are created",
+        "No REQUIREMENTS.md/PLAN.md is written yet since Act 1 just started"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to add an 'export to Excel' button on the invoices list page. can you help me spec this out properly before I start building? use the grill-me skill",
+      "expected_output": "Claude explicitly invokes grill-me, loads whatever project context is available, and begins a one-question-at-a-time interview covering goal/actor first rather than jumping straight to a technical implementation plan.",
+      "files": [],
+      "expectations": [
+        "Claude does not produce a full implementation plan in the first response",
+        "The first question is about goal/actor/workflow, not a low-level technical detail",
+        "No .ai-work files are written yet"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "fix the typo in the login page where it says 'Forgot Passsword' with three s's",
+      "expected_output": "grill-me should NOT trigger for this — it's a trivial, fully-specified one-line fix with no ambiguity to interview about.",
+      "files": [],
+      "expectations": [
+        "Claude does not launch a requirements interview",
+        "Claude either fixes the typo directly or asks at most a trivial clarifying question, not a Step 0 context-load + Act 1 interview"
+      ]
+    }
+  ]
+}

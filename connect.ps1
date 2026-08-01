@@ -108,6 +108,14 @@ $safeSlug   = $projectRoot -replace '[:\\/ ]', '-' -replace '-+', '-'
 $memDir     = "$env:USERPROFILE\.claude\projects\$safeSlug\memory"
 New-Item -ItemType Directory -Force -Path $memDir | Out-Null
 
+$baseRules = if ($autoConfig) { @($autoConfig.architectureRules) } else { @() }
+$mandatoryRules = @(
+    "NEVER_BREAK_EXISTING_FUNCTIONALITY: Every code change must preserve existing working behavior, preserve public API contracts/signatures, and pass graphify regression checks before finishing.",
+    "ALWAYS_VERIFY_LATEST_CONTEXT: AI agents must query the latest graphify codebase graph and inspect dependent modules before modifying files.",
+    "SENIOR_ENGINEER_SURGICAL_EDITS: Write code like a 10+ year senior engineer in the language—make minimal surgical edits, maximize reuse of existing project utilities, and avoid unnecessary refactoring."
+)
+$archRules = $baseRules + $mandatoryRules
+
 $config = [ordered]@{
     projectName        = $projectName
     projectRoot        = $projectRoot
@@ -116,7 +124,7 @@ $config = [ordered]@{
     backendPattern     = if ($autoConfig) { $autoConfig.backendPattern }  else { "" }
     frontendPattern    = if ($autoConfig) { $autoConfig.frontendPattern } else { "" }
     apiPattern         = if ($autoConfig) { $autoConfig.apiPattern }      else { "/api/v1/<resource>" }
-    architectureRules  = if ($autoConfig) { @($autoConfig.architectureRules) } else { @() }
+    architectureRules  = $archRules
     goldenModuleSimple = if ($autoConfig) { $autoConfig.goldenModuleSimple } else { "" }
     goldenModuleWizard = if ($autoConfig) { $autoConfig.goldenModuleWizard } else { "" }
     existingFeatures   = if ($autoConfig) { @($autoConfig.existingFeatures) } else { @() }
@@ -136,6 +144,37 @@ if (-not (Test-Path "$projectRoot\.graphifyignore")) {
     Write-Host "  .graphifyignore installed." -ForegroundColor Green
 }
 
+# Auto-Gitignore
+$gitIgnorePath = "$projectRoot\.gitignore"
+$aiIgnores = "`n# --- AI & dev-assistant ignores ---`ngraphify-out/`n.claude/projects/`n"
+if (Test-Path $gitIgnorePath) {
+    $content = Get-Content $gitIgnorePath -Raw
+    if (-not ($content -match "graphify-out")) {
+        Add-Content $gitIgnorePath $aiIgnores
+        Write-Host "  .gitignore updated with AI ignores." -ForegroundColor Green
+    }
+} else {
+    Set-Content $gitIgnorePath $aiIgnores
+    Write-Host "  .gitignore created with AI ignores." -ForegroundColor Green
+}
+
+# Git Hook Installer
+$gitHooksDir = "$projectRoot\.git\hooks"
+if (Test-Path $gitHooksDir) {
+    $hookScript = "#!/bin/sh`ngraphify . --backend claude-cli > /dev/null 2>&1 &`n"
+    foreach ($hook in @("post-merge", "post-checkout")) {
+        $hookPath = "$gitHooksDir\$hook"
+        if (-not (Test-Path $hookPath)) {
+            Set-Content $hookPath $hookScript
+            Write-Host "  Git hook installed: $hook" -ForegroundColor Green
+        }
+    }
+}
+
+# docs_export.py (PDF / DOCX export for generated docs)
+Copy-Item "$HERE\docs_export.py" "$projectRoot\docs_export.py" -Force
+Write-Host "  docs_export.py installed." -ForegroundColor Green
+
 # Workflows
 $wfDir = "$projectRoot\.claude\workflows"
 New-Item -ItemType Directory -Force -Path $wfDir | Out-Null
@@ -152,6 +191,21 @@ foreach ($wf in @("update-project-memory.js", "feature-docs.js")) {
         Set-Content $dst $c -Encoding UTF8
         Write-Host "  Workflow installed: $wf" -ForegroundColor Green
     }
+}
+
+# Skills (e.g. grill-me, context-loader, pattern-clone, db-design, code-review-quality, test-agent)
+$skillsSrcDir = "$HERE\templates\skills"
+if (Test-Path $skillsSrcDir) {
+    foreach ($skillDir in Get-ChildItem $skillsSrcDir -Directory) {
+        $dst = "$projectRoot\.claude\skills\$($skillDir.Name)"
+        New-Item -ItemType Directory -Force -Path $dst | Out-Null
+        Copy-Item "$($skillDir.FullName)\*" $dst -Recurse -Force
+        Write-Host "  Skill installed: $($skillDir.Name)" -ForegroundColor Green
+    }
+
+    # Fan out the same skills to Cursor / Copilot / Gemini / Codex
+    & python "$HERE\generate_agent_adapters.py" --project-root "$projectRoot" 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+    Write-Host "  Agent adapters generated (Cursor, Copilot, Gemini, Codex)." -ForegroundColor Green
 }
 
 # ── 7. Write COMMANDS.md ──────────────────────────────────────────────────────
@@ -181,6 +235,23 @@ Workflow({ name: 'update-project-memory', args: { date: '$today' } })
 ``````
 Workflow({ name: 'feature-docs', args: { feature: 'Your Feature Name', date: '$today' } })
 ``````
+
+## Export generated docs as PDF / DOCX
+``````powershell
+cd "$projectRoot"
+python docs_export.py "docs/specs/<feature-slug>-*.md" --formats pdf,docx
+``````
+
+## Installed Claude Code skills
+grill-me, context-loader, pattern-clone, db-design, code-review-quality, test-agent
+(auto-discovered from ``.claude\skills\`` — no slash command needed, Claude decides when to use them)
+
+## Re-generate Cursor / Copilot / Gemini / Codex adapters
+(run after editing any skill under ``.claude\skills\``)
+``````powershell
+cd "$HERE"
+python generate_agent_adapters.py --project-root "$projectRoot"
+``````
 "@
 Set-Content "$HERE\COMMANDS.md" $cmdsMd -Encoding UTF8
 
@@ -199,3 +270,4 @@ if ($autoConfig -and $autoConfig.existingFeatures) {
 }
 Write-Host "  Edit $HERE\config.json to adjust if anything looks wrong." -ForegroundColor DarkGray
 Write-Host ""
+

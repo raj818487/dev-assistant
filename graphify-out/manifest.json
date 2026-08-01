@@ -1,0 +1,47 @@
+{
+  "config.example.json": {
+    "mtime": 1782653781.6299238,
+    "ast_hash": "cbb218721460c9d27b368853ede7ab7b",
+    "semantic_hash": "cbb218721460c9d27b368853ede7ab7b"
+  },
+  "connect.ps1": {
+    "mtime": 1782654906.9821818,
+    "ast_hash": "ac2eea4eb54618893ea54163493eef9c",
+    "semantic_hash": "ac2eea4eb54618893ea54163493eef9c"
+  },
+  "connect.sh": {
+    "mtime": 1782654941.299954,
+    "ast_hash": "1c7a7b15947d5e0f191537aa54dc5dc0",
+    "semantic_hash": "1c7a7b15947d5e0f191537aa54dc5dc0"
+  },
+  "install.ps1": {
+    "mtime": 1782654863.5333498,
+    "ast_hash": "27f57b432e70849cfabf2e7e795b3d9a",
+    "semantic_hash": "27f57b432e70849cfabf2e7e795b3d9a"
+  },
+  "install.sh": {
+    "mtime": 1782654965.7999635,
+    "ast_hash": "38ec77ef283634657aec3301b0add60e",
+    "semantic_hash": "38ec77ef283634657aec3301b0add60e"
+  },
+  "server.py": {
+    "mtime": 1782653897.3056078,
+    "ast_hash": "e54bb68ccb03083d3e68ab372e33e89a",
+    "semantic_hash": "e54bb68ccb03083d3e68ab372e33e89a"
+  },
+  "workflows/feature-docs.js": {
+    "mtime": 1782654060.3199937,
+    "ast_hash": "e301f2a1b6607955bf9eab66d1c3ef89",
+    "semantic_hash": "e301f2a1b6607955bf9eab66d1c3ef89"
+  },
+  "workflows/update-project-memory.js": {
+    "mtime": 1782654007.2171683,
+    "ast_hash": "5eb18a7555d669458709ee3f800ea272",
+    "semantic_hash": "5eb18a7555d669458709ee3f800ea272"
+  },
+  "README.md": {
+    "mtime": 1782654120.3261662,
+    "ast_hash": "a115e6b9f262d87d8d95b98ce335584a",
+    "semantic_hash": "a115e6b9f262d87d8d95b98ce335584a"
+  }
+}

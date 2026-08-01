@@ -7,8 +7,13 @@ Run:   python server.py
 Open:  http://localhost:<port from config>
 """
 
-import json, os, subprocess, sys, tempfile
+import json, os, subprocess, sys, tempfile, threading, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+except ImportError:
+    Observer = None
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(HERE, "config.json")
@@ -45,6 +50,11 @@ API ROUTE PATTERN:
 ARCHITECTURE RULES (never violate):
 {chr(10).join(f"- {r}" for r in cfg.get("architectureRules", []))}
 
+MANDATORY ENGINEERING RULES:
+- NEVER_BREAK_EXISTING_FUNCTIONALITY: Every code change must preserve existing working behavior, preserve API contracts, and pass graphify regression checks.
+- ALWAYS_VERIFY_LATEST_CONTEXT: Query the latest graphify graph and inspect dependent modules before modifying files.
+- SENIOR_ENGINEER_SURGICAL_EDITS: Make minimal surgical edits, maximize reuse, and avoid unnecessary refactoring.
+
 GOLDEN MODULE (simple CRUD reference):
 {cfg.get("goldenModuleSimple", "not configured")}
 
@@ -56,6 +66,15 @@ EXISTING FEATURES (do not re-implement these):
 """.strip()
 
 # ── Intent detection ──────────────────────────────────────────────────────────
+ORIENT_KEYWORDS = [
+    "what is this project", "what does this project do", "what does this app do",
+    "give me an overview", "project overview", "high level overview",
+    "architecture overview", "how is this organized", "how is the codebase organized",
+    "where do i start", "where should i start", "new here", "new to this project",
+    "new to this codebase", "onboarding", "getting started", "get started",
+    "tell me about this project", "walk me through this", "introduce me to this project",
+    "i'm new", "im new", "just joined",
+]
 PLAN_KEYWORDS = [
     "add", "create", "build", "implement", "develop", "make",
     "new feature", "new module", "new page",
@@ -70,6 +89,8 @@ IMPACT_KEYWORDS = [
 
 def detect_intent(q: str) -> str:
     ql = q.lower()
+    if any(k in ql for k in ORIENT_KEYWORDS):
+        return "orient"
     if any(k in ql for k in PLAN_KEYWORDS):
         return "plan"
     if any(k in ql for k in IMPACT_KEYWORDS):
@@ -149,10 +170,65 @@ def extract_entity_name(question: str) -> tuple:
     return "Entity", "entities", "simple"
 
 
+# ── Curated onboarding context (for "orient") ────────────────────────────────
+def _read_file_safe(path: str, limit: int = 2500) -> str:
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        return text[:limit]
+    except Exception:
+        return ""
+
+
+def gather_orient_context(question: str = "") -> str:
+    """Prefer curated, human-written project docs over raw graph queries —
+    they're what a newcomer should read first, not a noisy graph dump."""
+    parts = []
+
+    mem_dir = cfg.get("memoryDir", "")
+    if mem_dir:
+        snap = _read_file_safe(os.path.join(mem_dir, "project-context-snapshot.md"), 3000)
+        if snap:
+            parts.append(f"=== PROJECT MEMORY SNAPSHOT (dev-assistant) ===\n{snap}")
+
+    doc_candidates = [
+        os.path.join(ROOT, "docs", "ai-context", "FEATURE_INVENTORY.md"),
+        os.path.join(ROOT, "docs", "ai-context", "INDEX.md"),
+        os.path.join(ROOT, "PROJECT_MEMORY.md"),
+        os.path.join(ROOT, "CLAUDE.md"),
+        os.path.join(ROOT, "README.md"),
+    ]
+    for path in doc_candidates:
+        text = _read_file_safe(path, 2000)
+        if text:
+            parts.append(f"=== {os.path.basename(path)} ===\n{text}")
+
+    if not parts:
+        parts.append(f"=== KNOWLEDGE GRAPH (fallback — no curated docs found) ===\n"
+                      f"{gq('project overview architecture main modules', 2500)}")
+
+    if question:
+        parts.append(f"=== RELEVANT CODE CONTEXT FOR THIS QUESTION ===\n{gq(question, 1200)}")
+
+    return "\n\n".join(parts)
+
+
+def is_context_thin(graph_data: str) -> bool:
+    """Heuristic: strip section headers and see how much real signal is left."""
+    signal = re_sub_headers(graph_data)
+    return len(signal.strip()) < 300
+
+
+def re_sub_headers(text: str) -> str:
+    return "\n".join(line for line in text.splitlines() if not line.startswith("==="))
+
+
 # ── Graph context gathering ───────────────────────────────────────────────────
 def gather_context(question: str, intent: str) -> str:
     parts = []
-    if intent == "plan":
+    if intent == "orient":
+        parts.append(gather_orient_context(question))
+    elif intent == "plan":
         parts.append(f"=== SIMILAR EXISTING PATTERNS ===\n{gq(question, 1500)}")
         parts.append(f"=== BACKEND SERVICE PATTERN ===\n{gq('backend service controller interface pattern', 1000)}")
         parts.append(f"=== FRONTEND COMPONENT PATTERN ===\n{gq('frontend page component service standalone', 1000)}")
@@ -164,9 +240,77 @@ def gather_context(question: str, intent: str) -> str:
     return "\n\n".join(parts)
 
 
+# ── Audience + honesty + conversation-history helpers ────────────────────────
+AUDIENCE_GUIDANCE = {
+    "candidate": (
+        "Audience: a job candidate interviewing for a role on this project, evaluating "
+        "whether they understand and can talk about it. Use plain English, no internal "
+        "jargon, no file paths or class names — focus on what the product does, who uses "
+        "it, and why it's built the way it is. Keep it welcoming and concise."
+    ),
+    "new_hire": (
+        "Audience: a new employee in their first week on this project. Be concrete — name "
+        "real features and modules and roughly where they live — but still explain any "
+        "acronym or internal term the first time you use it."
+    ),
+    "engineer": (
+        "Audience: an experienced engineer ramping up on this codebase. Be technical and "
+        "specific — exact file paths, class/service names, and architecture details are "
+        "expected and welcome."
+    ),
+}
+
+def audience_line(audience: str) -> str:
+    return AUDIENCE_GUIDANCE.get(audience, AUDIENCE_GUIDANCE["new_hire"])
+
+
+HONESTY_RULE = (
+    "HONESTY RULE: If the codebase context below is thin, empty, or doesn't clearly relate "
+    "to the question, say so explicitly at the start of your answer and give your best "
+    "high-level answer based on the architecture rules/tech stack instead of inventing "
+    "specific file names, class names, or claims the context doesn't support."
+)
+
+
+def build_history_text(history: list) -> str:
+    if not history:
+        return ""
+    lines = ["=== CONVERSATION SO FAR (most recent last, use for follow-up context) ==="]
+    for turn in history[-6:]:
+        role = "User" if turn.get("role") == "user" else "Assistant"
+        content = (turn.get("content") or "").strip()[:500]
+        if content:
+            lines.append(f"{role}: {content}")
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
 # ── Prompt builders ───────────────────────────────────────────────────────────
+def build_orient_prompt(question: str, graph_data: str, audience: str, history_text: str) -> str:
+    return f"""You are helping someone get oriented on the {cfg.get("projectName","project")} project.
+
+{PROJECT_CONTEXT}
+
+{audience_line(audience)}
+
+{HONESTY_RULE}
+
+PROJECT CONTEXT (curated docs + relevant code):
+{graph_data[:3500]}
+
+{history_text}
+
+QUESTION: "{question}"
+
+Answer in plain English, in short paragraphs or a short bulleted list — this is someone's
+first real look at the project, not a technical deep-dive. If this is a broad "what is this
+project" style question, cover: what the product does, who uses it, the tech stack, and
+2-3 good follow-up questions they could ask next. If it's a follow-up drilling into a
+specific feature or module, focus tightly on that instead of repeating the overview.
+"""
+
+
 def build_plan_prompt(question: str, entity: str, kebab: str,
-                      page_type: str, graph_data: str) -> str:
+                      page_type: str, graph_data: str, audience: str, history_text: str) -> str:
     e, k = entity, kebab
     el = e.lower()
     wizard_extra = ""
@@ -180,8 +324,14 @@ def build_plan_prompt(question: str, entity: str, kebab: str,
 
 {PROJECT_CONTEXT}
 
+{audience_line(audience)}
+
+{HONESTY_RULE}
+
 CODEBASE GRAPH (similar patterns found):
 {graph_data[:2500]}
+
+{history_text}
 
 USER REQUIREMENT: "{question}"
 ENTITY: {e} | ROUTE: {cfg.get("apiPattern","").replace("<resource>", k)} | TYPE: {page_type}
@@ -216,13 +366,19 @@ Numbered steps in the safe order to implement this from scratch.
 """
 
 
-def build_impact_prompt(question: str, graph_data: str) -> str:
+def build_impact_prompt(question: str, graph_data: str, audience: str, history_text: str) -> str:
     return f"""You are a senior developer on the {cfg.get("projectName","project")} project.
 
 {PROJECT_CONTEXT}
 
+{audience_line(audience)}
+
+{HONESTY_RULE}
+
 CODEBASE GRAPH:
 {graph_data[:2500]}
+
+{history_text}
 
 CHANGE REQUEST: "{question}"
 
@@ -246,13 +402,19 @@ Numbered steps to make this change without breaking existing functionality.
 """
 
 
-def build_explain_prompt(question: str, graph_data: str) -> str:
+def build_explain_prompt(question: str, graph_data: str, audience: str, history_text: str) -> str:
     return f"""You are a helpful developer explaining the {cfg.get("projectName","project")} codebase.
 
 {PROJECT_CONTEXT}
 
+{audience_line(audience)}
+
+{HONESTY_RULE}
+
 CODEBASE GRAPH:
 {graph_data}
+
+{history_text}
 
 QUESTION: "{question}"
 
@@ -262,23 +424,71 @@ Answer in plain English. Reference specific file names and class names from the 
 
 
 # ── Main ask handler ──────────────────────────────────────────────────────────
-def handle_question(question: str) -> dict:
+def handle_question(question: str, history: list = None, audience: str = "new_hire") -> dict:
     intent = detect_intent(question)
     graph_data = gather_context(question, intent)
+    history_text = build_history_text(history or [])
+
+    if is_context_thin(graph_data):
+        graph_data = ("[NOTE: little grounded context was found for this question — "
+                       "be upfront about that rather than guessing specifics.]\n\n") + graph_data
 
     if intent == "plan":
         entity, kebab, page_type = extract_entity_name(question)
-        prompt = build_plan_prompt(question, entity, kebab, page_type, graph_data)
+        prompt = build_plan_prompt(question, entity, kebab, page_type, graph_data, audience, history_text)
     elif intent == "impact":
-        prompt = build_impact_prompt(question, graph_data)
+        prompt = build_impact_prompt(question, graph_data, audience, history_text)
+    elif intent == "orient":
+        prompt = build_orient_prompt(question, graph_data, audience, history_text)
     else:
-        prompt = build_explain_prompt(question, graph_data)
+        prompt = build_explain_prompt(question, graph_data, audience, history_text)
 
     answer = _run_claude(prompt, timeout=120)
     if not answer or answer.startswith("[claude error:"):
         answer = "No response from Claude. Check that `claude` is in your PATH."
 
     return {"answer": answer, "intent": intent}
+
+
+# ── Getting Started (cached onboarding overview + suggestions) ──────────────
+_getting_started_cache = None
+
+def build_getting_started() -> dict:
+    global _getting_started_cache
+    if _getting_started_cache is not None:
+        return _getting_started_cache
+
+    graph_data = gather_orient_context()
+    prompt = f"""You are writing a short welcome overview of the {cfg.get("projectName","project")} project
+for someone who just opened this chatbot for the very first time — could be a job candidate
+or a brand-new employee.
+
+{PROJECT_CONTEXT}
+
+PROJECT CONTEXT:
+{graph_data[:3000]}
+
+Write 4-6 plain-English sentences covering: what the product does, who uses it, and the
+tech stack. No headers, no markdown, no file paths — just warm, clear prose. Return ONLY
+the overview text, nothing else."""
+
+    overview = _run_claude(prompt, timeout=60)
+    if not overview or overview.startswith("[claude error:"):
+        overview = (
+            f"Hi! I'm connected to the {cfg.get('projectName', 'this')} codebase "
+            f"({cfg.get('techStack', 'stack not configured')}). Ask me anything to get started."
+        )
+
+    features = cfg.get("existingFeatures", [])[:3]
+    suggestions = [f"How does {f} work?" for f in features]
+    suggestions += [
+        "What's the tech stack and why was it chosen?",
+        "How is the codebase organized?",
+        "Where should I start reading the code?",
+    ]
+
+    _getting_started_cache = {"overview": overview.strip(), "suggestions": suggestions[:6]}
+    return _getting_started_cache
 
 
 # ── Graph info ────────────────────────────────────────────────────────────────
@@ -318,7 +528,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .hdr-icon{font-size:20px}
 .hdr-title{font-size:15px;font-weight:700;color:var(--heading)}
 .hdr-sub{font-size:11px;color:var(--text);opacity:.6;margin-top:1px}
-.badge{margin-left:auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;color:var(--text)}
+#audience{margin-left:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:12px;font-family:var(--sans);color:var(--heading);cursor:pointer}
+.badge{margin-left:10px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;color:var(--text)}
 .badge b{color:var(--accent)}
 .msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
 .msg{display:flex;gap:10px;max-width:820px}
@@ -373,29 +584,24 @@ textarea::placeholder{color:var(--text);opacity:.4}
   <div class="hdr-icon">🧠</div>
   <div>
     <div class="hdr-title" id="proj-title">dev-assistant</div>
-    <div class="hdr-sub">Implementation planning · Impact analysis · Codebase Q&A</div>
+    <div class="hdr-sub">Onboarding · Implementation planning · Impact analysis · Codebase Q&A</div>
   </div>
+  <select id="audience" title="Who's asking?">
+    <option value="candidate">Candidate</option>
+    <option value="new_hire" selected>New employee</option>
+    <option value="engineer">Engineer</option>
+  </select>
   <div class="badge">graphify · <b id="nc">...</b> nodes</div>
 </div>
 <div class="msgs" id="msgs">
   <div class="msg bot">
     <div class="av">🤖</div>
-    <div class="bubble">
-      <p>Hi! I know your entire codebase. Ask me:</p>
-      <ul>
-        <li><strong>Plan a new feature</strong> — "I want to add a Customer page with name and email"</li>
-        <li><strong>Impact analysis</strong> — "What will break if I change the UserService?"</li>
-        <li><strong>Codebase questions</strong> — "How does authentication work?"</li>
-      </ul>
+    <div class="bubble" id="welcome-bubble">
+      <div class="dots"><span></span><span></span><span></span></div>
     </div>
   </div>
 </div>
-<div class="sugs" id="sugs">
-  <div class="sug" onclick="ask(this.textContent)">I want to add a new CRUD master page</div>
-  <div class="sug" onclick="ask(this.textContent)">What will break if I change the database schema?</div>
-  <div class="sug" onclick="ask(this.textContent)">How does the permission system work?</div>
-  <div class="sug" onclick="ask(this.textContent)">Explain the authentication flow end-to-end</div>
-</div>
+<div class="sugs" id="sugs"></div>
 <div class="inp-bar">
   <textarea id="inp" rows="1" placeholder="Describe a new feature, a change, or ask anything…" autofocus></textarea>
   <button id="send" onclick="send()" disabled>
@@ -403,11 +609,25 @@ textarea::placeholder{color:var(--text);opacity:.4}
   </button>
 </div>
 <script>
-const inp=document.getElementById('inp'),msgs=document.getElementById('msgs'),btn=document.getElementById('send');
+const inp=document.getElementById('inp'),msgs=document.getElementById('msgs'),btn=document.getElementById('send'),audienceSel=document.getElementById('audience');
+let convoHistory=[];
 fetch('/api/info').then(r=>r.json()).then(d=>{
   document.getElementById('nc').textContent=d.nodes.toLocaleString();
   document.getElementById('proj-title').textContent=d.project+' — dev-assistant';
 }).catch(()=>{});
+fetch('/api/getting-started').then(r=>r.json()).then(d=>{
+  const wb=document.getElementById('welcome-bubble');
+  wb.innerHTML=`<p>${(d.overview||'Hi! Ask me anything about this project.').replace(/</g,'&lt;')}</p>`;
+  const sugs=document.getElementById('sugs');
+  sugs.innerHTML='';
+  (d.suggestions||[]).forEach(s=>{
+    const el=document.createElement('div');el.className='sug';el.textContent=s;
+    el.onclick=()=>ask(s);
+    sugs.appendChild(el);
+  });
+}).catch(()=>{
+  document.getElementById('welcome-bubble').innerHTML='<p>Hi! Ask me anything about this project — what it does, how a feature works, or what to build next.</p>';
+});
 inp.addEventListener('input',()=>{btn.disabled=!inp.value.trim();inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,120)+'px';});
 inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
 function ask(q){inp.value=q;btn.disabled=false;send();}
@@ -420,6 +640,7 @@ const PROG={
   plan:['Searching for similar patterns...','Analysing backend structure...','Analysing frontend structure...','Generating plan...'],
   impact:['Tracing dependencies...','Mapping callers...','Assessing risk...','Writing safe steps...'],
   explain:['Querying knowledge graph...','Reading result...','Writing explanation...'],
+  orient:['Reading project docs...','Building the overview...','Writing a clear answer...'],
 };
 let pt=null,pi=0;
 function startProg(intent,el){
@@ -456,7 +677,7 @@ function inlineRender(t){
   return t;
 }
 function intentLabel(intent){
-  const map={plan:['IMPLEMENTATION PLAN','plan'],impact:['IMPACT ANALYSIS','impact'],explain:['EXPLANATION','explain']};
+  const map={plan:['IMPLEMENTATION PLAN','plan'],impact:['IMPACT ANALYSIS','impact'],explain:['EXPLANATION','explain'],orient:['GETTING ORIENTED','explain']};
   const [label,cls]=map[intent]||['ANSWER','explain'];
   return `<div class="intent-tag ${cls}">${label}</div>`;
 }
@@ -470,11 +691,18 @@ async function send(){
   msgs.appendChild(td);msgs.scrollTop=msgs.scrollHeight;
   startProg('explain',td);
   try{
-    const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      question:q, history:convoHistory, audience:audienceSel.value
+    })});
     const data=await res.json();
     stopProg();td.remove();
     if(data.error){addMsg('bot',`<p>Error: ${data.error}</p>`);}
-    else{addMsg('bot',intentLabel(data.intent)+renderMd(data.answer));}
+    else{
+      addMsg('bot',intentLabel(data.intent)+renderMd(data.answer));
+      convoHistory.push({role:'user',content:q});
+      convoHistory.push({role:'assistant',content:data.answer});
+      if(convoHistory.length>12)convoHistory=convoHistory.slice(-12);
+    }
   }catch(e){stopProg();td.remove();addMsg('bot','<p>Could not reach server. Is server.py running?</p>');}
 }
 </script>
@@ -494,6 +722,12 @@ class Handler(BaseHTTPRequestHandler):
                 "project": cfg.get("projectName", "Project"),
             }).encode()
             self._send(200, "application/json", payload)
+        elif self.path == "/api/getting-started":
+            try:
+                payload = json.dumps(build_getting_started()).encode()
+                self._send(200, "application/json", payload)
+            except Exception as e:
+                self._send(500, "application/json", json.dumps({"error": str(e)}).encode())
         else:
             self._send(404, "text/plain", b"Not found")
 
@@ -503,11 +737,15 @@ class Handler(BaseHTTPRequestHandler):
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length))
                 q = body.get("question", "").strip()
+                history = body.get("history", [])
+                audience = body.get("audience", "new_hire")
+                if audience not in AUDIENCE_GUIDANCE:
+                    audience = "new_hire"
                 if not q:
                     self._send(400, "application/json",
                                json.dumps({"error": "No question"}).encode())
                     return
-                result = handle_question(q)
+                result = handle_question(q, history=history, audience=audience)
                 self._send(200, "application/json",
                            json.dumps(result).encode())
             except Exception as e:
@@ -533,9 +771,56 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, fmt, *args):
-        status = args[1] if len(args) > 1 else "-"
-        path = args[0].split()[1] if args else "-"
+        # args[0] is the request line ("GET /path HTTP/1.1") on a normal request,
+        # but log_error() calls this with (code, message) instead — guard for that.
+        if args and isinstance(args[0], str) and " " in args[0]:
+            status = args[1] if len(args) > 1 else "-"
+            path = args[0].split()[1]
+        else:
+            status, path = "-", (fmt % args if args else fmt)
         print(f"  [{status}] {path}")
+
+
+# ── Live Sync Watcher ─────────────────────────────────────────────────────────
+class LiveSyncHandler(FileSystemEventHandler if Observer else object):
+    def __init__(self, root):
+        self.root = root
+        self.timer = None
+        self.lock = threading.Lock()
+        self.ignore_dirs = {".git", "node_modules", "graphify-out", ".claude", "__pycache__", ".venv", "venv"}
+
+    def _run_graphify(self):
+        try:
+            subprocess.run(["graphify", ".", "--backend", "claude-cli"], cwd=self.root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("  [Watcher] Graph updated automatically.")
+        except Exception as e:
+            print(f"  [Watcher] Failed to update graph: {e}")
+
+    def _debounce(self):
+        with self.lock:
+            if self.timer:
+                self.timer.cancel()
+            self.timer = threading.Timer(2.0, self._run_graphify)
+            self.timer.start()
+
+    def on_any_event(self, event):
+        if event.is_directory:
+            return
+        parts = event.src_path.split(os.sep)
+        if any(ignored in parts for ignored in self.ignore_dirs):
+            return
+        # Debounce on actual code changes
+        self._debounce()
+
+def start_watcher(root):
+    if not Observer:
+        print("  [WARN] watchdog not installed. Live Sync disabled.")
+        return None
+    observer = Observer()
+    observer.schedule(LiveSyncHandler(root), root, recursive=True)
+    observer.daemon = True
+    observer.start()
+    return observer
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -553,6 +838,8 @@ if __name__ == "__main__":
     print(f"  Server : http://localhost:{PORT}")
     print(f"  Stop   : Ctrl+C")
     print(f"  {sep}\n")
+
+    observer = start_watcher(ROOT)
 
     server = HTTPServer(("localhost", PORT), Handler)
     try:
