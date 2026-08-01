@@ -24,7 +24,8 @@ fi
 if command -v claude &>/dev/null; then
   echo "  [OK] Claude CLI found"
 else
-  echo "  [WARN] Claude CLI not found — install Claude Code: https://claude.ai/code"
+  echo "  [MISSING] Claude CLI not found. Installing via npm..."
+  npm install -g @anthropic-ai/claude-code || sudo npm install -g @anthropic-ai/claude-code
 fi
 
 # uv — install if missing

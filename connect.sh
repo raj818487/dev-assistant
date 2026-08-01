@@ -138,7 +138,7 @@ rules.extend([
 print(json.dumps(rules))
 ')
 
-cat > "$HERE/config.json" <<EOF
+cat > "$PROJECT_ROOT/dev-assistant.json" <<EOF
 {
   "projectName": "$PROJECT_NAME",
   "projectRoot": "$PROJECT_ROOT",
@@ -155,7 +155,7 @@ cat > "$HERE/config.json" <<EOF
   "port": $PORT
 }
 EOF
-echo "  config.json written."
+echo "  dev-assistant.json written to project."
 
 # 6. Copy templates + install workflows
 echo "  [4/4] Installing files into project..."
@@ -271,6 +271,10 @@ echo "  COMMANDS.md written."
 echo ""
 echo "  All done!"
 echo ""
-echo "  Start: python \"$HERE/server.py\""
-echo "  Open:  http://localhost:$PORT"
+echo "  Start the assistant:"
+echo "    npx dev-assistant serve"
+echo ""
+echo "  Open in browser: http://localhost:$PORT"
+echo ""
+echo "  Edit $PROJECT_ROOT/dev-assistant.json to adjust if anything looks wrong."
 echo ""

@@ -136,8 +136,8 @@ $config = [ordered]@{
     port               = $port
 }
 
-$config | ConvertTo-Json -Depth 5 | Set-Content "$HERE\config.json" -Encoding UTF8
-Write-Host "  config.json written." -ForegroundColor Green
+$config | ConvertTo-Json -Depth 5 | Set-Content "$projectRoot\dev-assistant.json" -Encoding UTF8
+Write-Host "  dev-assistant.json written to project." -ForegroundColor Green
 
 # ── 6. Copy templates + workflows into project ────────────────────────────────
 Write-Host "  [4/4] Installing files into project..." -ForegroundColor Yellow
@@ -264,14 +264,12 @@ Write-Host ""
 Write-Host "  All done!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Start the assistant:" -ForegroundColor Cyan
-Write-Host "    cd `"$HERE`""
-Write-Host "    python server.py"
+Write-Host "    npx dev-assistant serve" -ForegroundColor White
 Write-Host ""
-Write-Host "  Open in browser: http://localhost:$port"
+Write-Host "  Open in browser: http://localhost:$port" -ForegroundColor Cyan
 Write-Host ""
 if ($autoConfig -and $autoConfig.existingFeatures) {
     Write-Host "  Detected $($autoConfig.existingFeatures.Count) existing features." -ForegroundColor DarkGray
 }
-Write-Host "  Edit $HERE\config.json to adjust if anything looks wrong." -ForegroundColor DarkGray
+Write-Host "  Edit $projectRoot\dev-assistant.json to adjust if anything looks wrong." -ForegroundColor DarkGray
 Write-Host ""
-

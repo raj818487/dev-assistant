@@ -8,6 +8,13 @@ const isWindows = os.platform() === 'win32';
 const rootDir = __dirname;
 
 try {
+  if (process.argv[2] === 'serve') {
+    console.log("Starting Dev-Assistant Chat Server...");
+    const serverScript = path.join(rootDir, 'server.py');
+    execSync(`python "${serverScript}"`, { stdio: 'inherit', cwd: process.cwd() });
+    process.exit(0);
+  }
+
   console.log("Installing dev-assistant...");
   
   if (isWindows) {

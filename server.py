@@ -16,7 +16,9 @@ except ImportError:
     Observer = None
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(HERE, "config.json")
+CONFIG_PATH = os.path.join(os.getcwd(), "dev-assistant.json")
+if not os.path.exists(CONFIG_PATH):
+    CONFIG_PATH = os.path.join(HERE, "config.json")
 
 # ── Load config ───────────────────────────────────────────────────────────────
 def load_config() -> dict:

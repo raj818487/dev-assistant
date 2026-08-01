@@ -23,9 +23,10 @@ $cl = Get-Command claude -ErrorAction SilentlyContinue
 if ($cl) {
     Write-Host "  [OK] Claude CLI found at $($cl.Source)" -ForegroundColor Green
 } else {
-    Write-Host "  [WARN] Claude CLI not found — install Claude Code from https://claude.ai/code" -ForegroundColor Yellow
+    Write-Host "  [MISSING] Claude CLI not found. Installing via npm..." -ForegroundColor Yellow
+    npm install -g @anthropic-ai/claude-code
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")
 }
-
 # ── uv ────────────────────────────────────────────────────────────────────────
 # Check PATH first, then fall back to known install locations
 $uvCmd = Get-Command uv -ErrorAction SilentlyContinue
