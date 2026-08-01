@@ -15,6 +15,24 @@ try {
     process.exit(0);
   }
 
+  if (process.argv[2] === 'graphify' || process.argv[2] === 'update-graph') {
+    console.log("Updating graphify codebase knowledge graph...");
+    execSync(`graphify . --backend claude-cli`, { stdio: 'inherit', cwd: process.cwd() });
+    process.exit(0);
+  }
+
+  if (process.argv[2] === 'graphify-tree') {
+    console.log("Generating interactive HTML tree map of the codebase...");
+    execSync(`graphify tree`, { stdio: 'inherit', cwd: process.cwd() });
+    process.exit(0);
+  }
+
+  if (process.argv[2] === 'graphify-callflow') {
+    console.log("Generating Mermaid architecture call-flow HTML...");
+    execSync(`graphify export callflow-html`, { stdio: 'inherit', cwd: process.cwd() });
+    process.exit(0);
+  }
+
   console.log("Installing dev-assistant...");
   
   if (isWindows) {

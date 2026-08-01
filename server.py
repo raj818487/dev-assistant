@@ -23,8 +23,9 @@ if not os.path.exists(CONFIG_PATH):
 # ── Load config ───────────────────────────────────────────────────────────────
 def load_config() -> dict:
     if not os.path.exists(CONFIG_PATH):
-        print(f"\n  ERROR: config.json not found at {CONFIG_PATH}")
-        print("  Run connect.ps1 (Windows) or connect.sh (Mac/Linux) first.\n")
+        print(f"\n  ERROR: Configuration not found!")
+        print(f"  We looked for: {os.path.join(os.getcwd(), 'dev-assistant.json')}")
+        print(f"  Make sure you run `npx dev-assistant serve` from the root of your project.")
         sys.exit(1)
     with open(CONFIG_PATH, encoding="utf-8") as f:
         return json.load(f)
