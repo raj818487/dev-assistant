@@ -44,7 +44,7 @@ if (-not $uvCmd) {
 
 if (-not $uvCmd) {
     Write-Host "  [MISSING] uv not found. Installing via winget..." -ForegroundColor Yellow
-    winget install astral-sh.uv --silent 2>&1 | Out-Null
+    winget install astral-sh.uv
     # Refresh PATH again after install
     $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
                 [System.Environment]::GetEnvironmentVariable("PATH","User")
@@ -59,8 +59,8 @@ Write-Host "  [OK] uv found" -ForegroundColor Green
 # ── graphify ──────────────────────────────────────────────────────────────────
 Write-Host "  Installing / updating graphify..." -ForegroundColor Cyan
 $uvExe = if ($uvCmd -is [string]) { $uvCmd } else { $uvCmd.Source }
-& $uvExe tool install graphifyy 2>&1 | Out-Null
-& $uvExe tool update-shell 2>&1 | Out-Null
+& $uvExe tool install graphifyy
+& $uvExe tool update-shell
 
 # Refresh PATH one more time
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +

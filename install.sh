@@ -28,13 +28,14 @@ else
 fi
 
 # uv — install if missing
-if ! command -v uv &>/dev/null; then
-  echo "  Installing uv..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  source "$HOME/.local/bin/env" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
+if command -v uv; then
+  echo "  [OK] uv found"
+else
+  echo "  [MISSING] uv not found. Installing..."
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$HOME/.local/bin" sh
 fi
 
-if command -v uv &>/dev/null; then
+if command -v uv; then
   echo "  [OK] uv found"
 else
   echo "  [ERROR] uv install failed. Try manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
@@ -43,8 +44,8 @@ fi
 
 # graphify
 echo "  Installing / updating graphify..."
-uv tool install graphifyy 2>/dev/null || uv tool upgrade graphifyy 2>/dev/null || true
-uv tool update-shell 2>/dev/null || true
+uv tool install graphifyy || uv tool upgrade graphifyy || true
+uv tool update-shell || true
 export PATH="$HOME/.local/bin:$(uv tool dir 2>/dev/null)/bin:$PATH"
 
 if command -v graphify &>/dev/null; then
