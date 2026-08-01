@@ -4,12 +4,15 @@ const { execSync } = require('child_process');
 const path = require('path');
 const os = require('os');
 
+const fs = require('fs');
+
 const isWindows = os.platform() === 'win32';
 const rootDir = __dirname;
 
+
 try {
   if (process.argv[2] === 'serve') {
-    console.log("Starting Dev-Assistant Chat Server...");
+    console.log("Starting Omni-Plugin Chat Server...");
     const serverScript = path.join(rootDir, 'server.py');
     execSync(`python "${serverScript}"`, { stdio: 'inherit', cwd: process.cwd() });
     process.exit(0);
@@ -17,7 +20,19 @@ try {
 
   if (process.argv[2] === 'graphify' || process.argv[2] === 'update-graph') {
     console.log("Updating graphify codebase knowledge graph...");
-    execSync(`graphify . --backend claude-cli`, { stdio: 'inherit', cwd: process.cwd() });
+    const graphPath = path.join(process.cwd(), 'graphify-out', 'graph.json');
+    try {
+      execSync(`graphify extract . --backend claude-cli`, { stdio: 'inherit', cwd: process.cwd() });
+    } catch (e) {
+      // Check if AST already produced a partial graph (common when only semantic LLM fails)
+      if (fs.existsSync(graphPath)) {
+        console.log("  [OK] Partial AST graph exists — skipping fallback.");
+      } else {
+        console.log("  [WARN] No graph produced. Falling back to AST-only (no LLM needed)...");
+        execSync(`graphify extract . --code-only`, { stdio: 'inherit', cwd: process.cwd() });
+      }
+    }
+    console.log("  Graph ready.");
     process.exit(0);
   }
 
@@ -33,7 +48,7 @@ try {
     process.exit(0);
   }
 
-  console.log("Installing dev-assistant...");
+  console.log("Installing omni-plugin...");
   
   if (isWindows) {
     const installScript = path.join(rootDir, 'install.ps1');
@@ -49,6 +64,6 @@ try {
   
   console.log("Done! AI adapters generated successfully.");
 } catch (error) {
-  console.error("Failed to run dev-assistant installer.", error.message);
+  console.error("Failed to run omni-plugin installer.", error.message);
   process.exit(1);
 }

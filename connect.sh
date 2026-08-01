@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# dev-assistant — connect to a project (Mac/Linux)
+# omni-plugin — connect to a project (Mac/Linux)
 # Ask: project path + tech stack. Everything else is auto-detected.
 
 set -e
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo ""
-echo "  dev-assistant — connect"
+echo "  omni-plugin — connect"
 echo "  ----------------------------------------"
 echo ""
 
@@ -35,12 +35,18 @@ fi
 
 # 3. Build knowledge graph
 echo "  [1/4] Building knowledge graph (may take 2-5 min)..."
-cd "$PROJECT_ROOT"
-if graphify . --backend claude-cli; then
-  echo "  Graph built."
-else
-  echo "  Graph build failed. Continuing with partial config."
+cd "$PROJECT_ROOT" || exit 1
+if ! graphify extract . --backend claude-cli; then
+  PARTIAL_GRAPH="$PROJECT_ROOT/graphify-out/graph.json"
+  if [ -f "$PARTIAL_GRAPH" ]; then
+    echo "  [OK] Partial AST graph already built — skipping fallback."
+  else
+    echo "  [WARN] No graph produced. Falling back to AST-only (no LLM needed)..."
+    graphify extract . --code-only
+  fi
 fi
+cd - > /dev/null
+echo "  Graph built."
 cd "$HERE"
 
 GRAPH_PATH="$PROJECT_ROOT/graphify-out/graph.json"
@@ -273,7 +279,7 @@ echo ""
 echo "  All done!"
 echo ""
 echo "  Start the assistant:"
-echo "    npx dev-assistant serve"
+echo "    npx omni-plugin serve"
 echo ""
 echo "  Open in browser: http://localhost:$PORT"
 echo ""

@@ -1,4 +1,4 @@
-# dev-assistant — connect to a project (Windows)
+# omni-plugin — connect to a project (Windows)
 # Ask: project path + tech stack. Everything else is auto-detected.
 # Usage: .\connect.ps1
 
@@ -15,7 +15,7 @@ $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";"
             [System.Environment]::GetEnvironmentVariable("PATH","User")
 
 Write-Host ""
-Write-Host "  dev-assistant — connect" -ForegroundColor Cyan
+Write-Host "  omni-plugin — connect" -ForegroundColor Cyan
 Write-Host "  ----------------------------------------"
 Write-Host ""
 
@@ -46,9 +46,20 @@ if (-not $gfCmd) {
 
 # ── 3. Build knowledge graph ──────────────────────────────────────────────────
 Write-Host "  [1/4] Building knowledge graph (may take 2-5 min)..." -ForegroundColor Yellow
+
 Push-Location $projectRoot
 try {
-    & graphify . --backend claude-cli
+    & graphify extract . --backend claude-cli
+    if ($LASTEXITCODE -ne 0) {
+        # Claude CLI failed. Check if AST still produced a partial graph.json.
+        $partialGraph = "$projectRoot\graphify-out\graph.json"
+        if (Test-Path $partialGraph) {
+            Write-Host "  [OK] Partial AST graph already built — skipping fallback." -ForegroundColor Green
+        } else {
+            Write-Host "  [WARN] No graph produced. Falling back to AST-only (no LLM needed)..." -ForegroundColor Yellow
+            & graphify extract . --code-only
+        }
+    }
     Write-Host "  Graph built." -ForegroundColor Green
 } catch {
     Write-Host "  Graph build failed: $_" -ForegroundColor Red
@@ -265,7 +276,7 @@ Write-Host ""
 Write-Host "  All done!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Start the assistant:" -ForegroundColor Cyan
-Write-Host "    npx dev-assistant serve" -ForegroundColor White
+Write-Host "    npx omni-plugin serve" -ForegroundColor White
 Write-Host ""
 Write-Host "  Open in browser: http://localhost:$port" -ForegroundColor Cyan
 Write-Host ""

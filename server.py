@@ -148,6 +148,10 @@ def _run_claude(prompt: str, timeout: int = 120) -> str:
                 pass
 
 
+# _run_llm is an alias for _run_claude; kept for forward-compat if a new backend is added later.
+_run_llm = _run_claude
+
+
 # ── Entity name extraction (plan mode) ───────────────────────────────────────
 def extract_entity_name(question: str) -> tuple:
     mini = (
@@ -158,7 +162,7 @@ def extract_entity_name(question: str) -> tuple:
         "Line 3: simple or wizard"
     )
     try:
-        raw = _run_claude(mini, timeout=30)
+        raw = _run_llm(mini, timeout=30)
         lines = [l.strip() for l in raw.splitlines()
                  if l.strip() and not l.startswith("[")]
         if len(lines) >= 3:
@@ -446,9 +450,7 @@ def handle_question(question: str, history: list = None, audience: str = "new_hi
     else:
         prompt = build_explain_prompt(question, graph_data, audience, history_text)
 
-    answer = _run_claude(prompt, timeout=120)
-    if not answer or answer.startswith("[claude error:"):
-        answer = "No response from Claude. Check that `claude` is in your PATH."
+    answer = _run_llm(prompt, timeout=120)
 
     return {"answer": answer, "intent": intent}
 
@@ -475,8 +477,8 @@ Write 4-6 plain-English sentences covering: what the product does, who uses it, 
 tech stack. No headers, no markdown, no file paths — just warm, clear prose. Return ONLY
 the overview text, nothing else."""
 
-    overview = _run_claude(prompt, timeout=60)
-    if not overview or overview.startswith("[claude error:"):
+    overview = _run_llm(prompt, timeout=60)
+    if not overview or "failed:" in overview or "[claude error:" in overview or "[gemini error:" in overview:
         overview = (
             f"Hi! I'm connected to the {cfg.get('projectName', 'this')} codebase "
             f"({cfg.get('techStack', 'stack not configured')}). Ask me anything to get started."

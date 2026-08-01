@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# dev-assistant — install prerequisites (Mac/Linux)
+# omni-plugin — install prerequisites (Mac/Linux)
 
 set -e
 echo ""
-echo "  dev-assistant — install"
+echo "  omni-plugin — install"
 echo "  ----------------------------------------"
 echo ""
 
@@ -45,7 +45,7 @@ fi
 
 # graphify
 echo "  Installing / updating graphify..."
-uv tool install graphifyy || uv tool upgrade graphifyy || true
+uv tool install "graphifyy[gemini]" --force || uv tool upgrade "graphifyy[gemini]" --force || true
 uv tool update-shell || true
 export PATH="$HOME/.local/bin:$(uv tool dir 2>/dev/null)/bin:$PATH"
 

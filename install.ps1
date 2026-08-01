@@ -1,8 +1,8 @@
-# dev-assistant — install prerequisites (Windows)
+# omni-plugin — install prerequisites (Windows)
 # Run once per machine.
 
 Write-Host ""
-Write-Host "  dev-assistant — install" -ForegroundColor Cyan
+Write-Host "  omni-plugin — install" -ForegroundColor Cyan
 Write-Host "  ----------------------------------------"
 Write-Host ""
 
@@ -60,7 +60,7 @@ Write-Host "  [OK] uv found" -ForegroundColor Green
 # ── graphify ──────────────────────────────────────────────────────────────────
 Write-Host "  Installing / updating graphify..." -ForegroundColor Cyan
 $uvExe = if ($uvCmd -is [string]) { $uvCmd } else { $uvCmd.Source }
-& $uvExe tool install graphifyy
+& $uvExe tool install "graphifyy[gemini]" --force
 & $uvExe tool update-shell
 
 # Refresh PATH one more time
