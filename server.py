@@ -947,11 +947,15 @@ def start_watcher(root):
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     if not os.path.exists(GRAPH):
-        print(f"\n  ERROR: graph not found: {GRAPH}")
-        print("  Run connect.ps1 to build the graph first.\n")
-        sys.exit(1)
+        print(f"\n  WARNING: graph not found: {GRAPH}")
+        print("  The chat server will start, but graph queries won't return results.")
+        print("  To build the graph, run:")
+        print("    graphify extract . --code-only --no-gitignore")
+        print("  Then restart the server.\n")
+        n = 0
+    else:
+        n = graph_node_count()
 
-    n = graph_node_count()
     sep = "-" * 44
     print(f"\n  dev-assistant [{cfg.get('projectName','?')}]")
     print(f"  {sep}")

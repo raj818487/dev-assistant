@@ -44,30 +44,158 @@ if (-not $gfCmd) {
     exit 1
 }
 
-# ── 3. Build knowledge graph ──────────────────────────────────────────────────
+# ── 3. Choose AI backend & Build knowledge graph ─────────────────────────────
+Write-Host ""
+Write-Host "  Which AI backend should graphify use for semantic enrichment?" -ForegroundColor Cyan
+Write-Host "  (Semantic = richer graph. AST-only = offline, no API key needed)" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "    [1] Claude Code CLI   (needs Claude CLI installed)"
+Write-Host "    [2] Cursor            (needs Cursor IDE installed)"
+Write-Host "    [3] Gemini            (needs GEMINI_API_KEY)"
+Write-Host "    [4] Agy / Antigravity (needs agy CLI installed)"
+Write-Host "    [5] Codex / OpenAI    (needs OPENAI_API_KEY)"
+Write-Host "    [6] AST only          (offline, no AI needed — always works)"
+Write-Host ""
+$backendChoice = Read-Host "  Enter choice [6]"
+if ($backendChoice -notmatch "^[1-6]$") { $backendChoice = "6" }
+
+$graphifyBackend = $null
+$apiKeyNeeded    = $null
+$backendOk       = $false
+
+switch ($backendChoice) {
+    "1" {
+        $claudeCmd = Get-Command claude -ErrorAction SilentlyContinue
+        if ($claudeCmd) {
+            Write-Host "  [OK] Claude CLI found at $($claudeCmd.Source)" -ForegroundColor Green
+            $graphifyBackend = "claude-cli"
+            $backendOk = $true
+        } else {
+            Write-Host "  [WARN] Claude CLI not found. Download from https://claude.ai/download" -ForegroundColor Yellow
+            Write-Host "         Falling back to AST-only." -ForegroundColor Yellow
+        }
+    }
+    "2" {
+        # Cursor doesn't expose a standalone LLM CLI — detect install, map to claude-cli backend
+        $cursorPaths = @(
+            "$env:LOCALAPPDATA\Programs\cursor\Cursor.exe",
+            "$env:ProgramFiles\Cursor\Cursor.exe",
+            (Get-Command cursor -ErrorAction SilentlyContinue)?.Source
+        ) | Where-Object { $_ -and (Test-Path $_) }
+        if ($cursorPaths) {
+            Write-Host "  [OK] Cursor detected at $($cursorPaths[0])" -ForegroundColor Green
+            Write-Host "  [INFO] Cursor IDE found. Graphify will use the claude-cli layer Cursor ships with." -ForegroundColor DarkGray
+            # Try claude first (Cursor bundles claude); fall through to AST-only if that fails
+            $claudeCmd = Get-Command claude -ErrorAction SilentlyContinue
+            if ($claudeCmd) {
+                $graphifyBackend = "claude-cli"
+                $backendOk = $true
+                Write-Host "  [OK] Claude CLI (bundled with Cursor env) available." -ForegroundColor Green
+            } else {
+                Write-Host "  [INFO] Claude CLI not found separately. Using AST-only + Cursor IDE for chat." -ForegroundColor DarkGray
+            }
+        } else {
+            Write-Host "  [WARN] Cursor not found. Download from https://cursor.com" -ForegroundColor Yellow
+            Write-Host "         Falling back to AST-only." -ForegroundColor Yellow
+        }
+    }
+    "3" {
+        $gemKey = [System.Environment]::GetEnvironmentVariable("GEMINI_API_KEY","User") `
+                  -or [System.Environment]::GetEnvironmentVariable("GEMINI_API_KEY","Machine") `
+                  -or $env:GEMINI_API_KEY
+        if (-not $gemKey) {
+            $gemKey = (Read-Host "  Enter GEMINI_API_KEY").Trim()
+        }
+        if ($gemKey) {
+            $env:GEMINI_API_KEY = $gemKey
+            $graphifyBackend = "gemini"
+            $backendOk = $true
+            Write-Host "  [OK] Gemini backend configured." -ForegroundColor Green
+        } else {
+            Write-Host "  [WARN] No Gemini key provided. Falling back to AST-only." -ForegroundColor Yellow
+        }
+    }
+    "4" {
+        $agyCmd = Get-Command agy -ErrorAction SilentlyContinue
+        if (-not $agyCmd) { $agyCmd = Get-Command antigravity -ErrorAction SilentlyContinue }
+        if ($agyCmd) {
+            Write-Host "  [OK] Antigravity CLI found at $($agyCmd.Source)" -ForegroundColor Green
+            Write-Host "  [INFO] Antigravity found but graphify's semantic uses claude-cli/gemini/openai." -ForegroundColor DarkGray
+            Write-Host "         Using AST-only extraction. Run 'graphify extract . --backend openai' manually" -ForegroundColor DarkGray
+            Write-Host "         with OPENAI_API_KEY set if you want semantic enrichment later." -ForegroundColor DarkGray
+        } else {
+            Write-Host "  [WARN] Agy/Antigravity CLI not found. Download from https://antigravity.dev" -ForegroundColor Yellow
+        }
+    }
+    "5" {
+        $oaiKey = [System.Environment]::GetEnvironmentVariable("OPENAI_API_KEY","User") `
+                  -or [System.Environment]::GetEnvironmentVariable("OPENAI_API_KEY","Machine") `
+                  -or $env:OPENAI_API_KEY
+        if (-not $oaiKey) {
+            $oaiKey = (Read-Host "  Enter OPENAI_API_KEY").Trim()
+        }
+        if ($oaiKey) {
+            $env:OPENAI_API_KEY = $oaiKey
+            $graphifyBackend = "openai"
+            $backendOk = $true
+            Write-Host "  [OK] OpenAI/Codex backend configured." -ForegroundColor Green
+        } else {
+            Write-Host "  [WARN] No OpenAI key. Falling back to AST-only." -ForegroundColor Yellow
+        }
+    }
+    "6" {
+        Write-Host "  [OK] AST-only selected — no API key needed." -ForegroundColor Green
+    }
+}
+
+Write-Host ""
 Write-Host "  [1/4] Building knowledge graph (may take 2-5 min)..." -ForegroundColor Yellow
+
+# Helper — run graphify AST-only with --no-gitignore to avoid Python 3.14 pathlib bug
+function Run-GraphifyASTOnly {
+    param([string]$Path)
+    Write-Host "  Extracting AST (code structure, no LLM)..." -ForegroundColor DarkGray
+    & graphify extract $Path --code-only --no-gitignore
+    $ec = $LASTEXITCODE
+    if ($ec -ne 0) {
+        # Python 3.14 pathlib bug workaround: try without --no-gitignore as a last resort
+        Write-Host "  [WARN] AST extraction had warnings. Trying without gitignore filter..." -ForegroundColor Yellow
+        & graphify extract $Path --code-only
+    }
+}
 
 Push-Location $projectRoot
 try {
-    & graphify extract . --backend claude-cli
-    if ($LASTEXITCODE -ne 0) {
-        # Claude CLI failed. Check if AST still produced a partial graph.json.
-        $partialGraph = "$projectRoot\graphify-out\graph.json"
-        if (Test-Path $partialGraph) {
-            Write-Host "  [OK] Partial AST graph already built — skipping fallback." -ForegroundColor Green
-        } else {
-            Write-Host "  [WARN] No graph produced. Falling back to AST-only (no LLM needed)..." -ForegroundColor Yellow
-            & graphify extract . --code-only
+    $graphPath = "$projectRoot\graphify-out\graph.json"
+
+    if ($backendOk -and $graphifyBackend) {
+        Write-Host "  Using backend: $graphifyBackend" -ForegroundColor DarkGray
+        & graphify extract . --backend $graphifyBackend --no-gitignore
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  [WARN] Semantic extraction failed. Falling back to AST-only..." -ForegroundColor Yellow
+            Run-GraphifyASTOnly "."
         }
+    } else {
+        # AST-only path
+        Run-GraphifyASTOnly "."
     }
-    Write-Host "  Graph built." -ForegroundColor Green
+
+    if (Test-Path $graphPath) {
+        $nodeCount = (Get-Content $graphPath -Raw | ConvertFrom-Json).nodes.Count
+        Write-Host "  [OK] Graph built: $nodeCount nodes." -ForegroundColor Green
+    } else {
+        Write-Host "  [WARN] graph.json not found after extraction." -ForegroundColor Yellow
+        Write-Host "         The chat server will start but graph queries won't work." -ForegroundColor Yellow
+        Write-Host "         Re-run: graphify extract . --code-only --no-gitignore" -ForegroundColor DarkGray
+    }
 } catch {
     Write-Host "  Graph build failed: $_" -ForegroundColor Red
-    Write-Host "  Continuing with partial config — you can rebuild later." -ForegroundColor Yellow
+    Write-Host "  Tip: Try running manually: graphify extract . --code-only --no-gitignore" -ForegroundColor Yellow
 }
 Pop-Location
 
-$graphPath = "$projectRoot\graphify-out\graph.json"
+# Ensure $graphPath is always set (may not be set if try block threw early)
+if (-not $graphPath) { $graphPath = "$projectRoot\graphify-out\graph.json" }
 
 # ── 4. Auto-detect config using Claude ───────────────────────────────────────
 Write-Host "  [2/4] Auto-detecting project config with Claude..." -ForegroundColor Yellow

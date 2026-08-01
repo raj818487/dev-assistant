@@ -33,23 +33,112 @@ if ! command -v graphify &>/dev/null; then
   echo "  graphify not found. Run ./install.sh first."; exit 1
 fi
 
-# 3. Build knowledge graph
+# 3. Choose AI backend & Build knowledge graph
+echo ""
+echo "  Which AI backend should graphify use for semantic enrichment?"
+echo "  (Semantic = richer graph. AST-only = offline, no API key needed)"
+echo ""
+echo "    [1] Claude Code CLI   (needs Claude CLI installed)"
+echo "    [2] Cursor            (needs Cursor IDE installed)"
+echo "    [3] Gemini            (needs GEMINI_API_KEY)"
+echo "    [4] Agy / Antigravity (needs agy CLI installed)"
+echo "    [5] Codex / OpenAI    (needs OPENAI_API_KEY)"
+echo "    [6] AST only          (offline, no AI needed — always works)"
+echo ""
+printf "  Enter choice [6]: "; read BACKEND_CHOICE
+[ -z "$BACKEND_CHOICE" ] && BACKEND_CHOICE="6"
+
+GRAPHIFY_BACKEND=""
+BACKEND_OK=0
+
+case "$BACKEND_CHOICE" in
+  1)
+    if command -v claude &>/dev/null; then
+      echo "  [OK] Claude CLI found."
+      GRAPHIFY_BACKEND="claude-cli"; BACKEND_OK=1
+    else
+      echo "  [WARN] Claude CLI not found. Download from https://claude.ai/download"
+      echo "         Falling back to AST-only."
+    fi ;;
+  2)
+    # Cursor IDE — detect install, try claude-cli layer Cursor ships with
+    CURSOR_FOUND=0
+    command -v cursor &>/dev/null && CURSOR_FOUND=1
+    [ -f "/Applications/Cursor.app/Contents/MacOS/Cursor" ] && CURSOR_FOUND=1
+    [ -f "$HOME/.local/share/cursor/cursor" ] && CURSOR_FOUND=1
+    if [ "$CURSOR_FOUND" = "1" ]; then
+      echo "  [OK] Cursor IDE detected."
+      echo "  [INFO] Graphify will use the claude-cli layer Cursor ships with."
+      if command -v claude &>/dev/null; then
+        GRAPHIFY_BACKEND="claude-cli"; BACKEND_OK=1
+        echo "  [OK] Claude CLI (via Cursor env) available."
+      else
+        echo "  [INFO] Claude CLI not found separately. Using AST-only + Cursor IDE for chat."
+      fi
+    else
+      echo "  [WARN] Cursor not found. Download from https://cursor.com"
+      echo "         Falling back to AST-only."
+    fi ;;
+  3)
+    if [ -z "$GEMINI_API_KEY" ]; then
+      printf "  Enter GEMINI_API_KEY: "; read GEMINI_API_KEY; export GEMINI_API_KEY
+    fi
+    if [ -n "$GEMINI_API_KEY" ]; then
+      echo "  [OK] Gemini backend configured."
+      GRAPHIFY_BACKEND="gemini"; BACKEND_OK=1
+    else
+      echo "  [WARN] No Gemini key. Falling back to AST-only."
+    fi ;;
+  4)
+    if command -v agy &>/dev/null || command -v antigravity &>/dev/null; then
+      echo "  [INFO] Antigravity found. graphify uses openai/gemini/claude for semantic enrichment."
+      echo "         Using AST-only. Set OPENAI_API_KEY and choose [5] for semantic enrichment."
+    else
+      echo "  [WARN] Agy/Antigravity CLI not found. Download from https://antigravity.dev"
+    fi ;;
+  5)
+    if [ -z "$OPENAI_API_KEY" ]; then
+      printf "  Enter OPENAI_API_KEY: "; read OPENAI_API_KEY; export OPENAI_API_KEY
+    fi
+    if [ -n "$OPENAI_API_KEY" ]; then
+      echo "  [OK] OpenAI/Codex backend configured."
+      GRAPHIFY_BACKEND="openai"; BACKEND_OK=1
+    else
+      echo "  [WARN] No OpenAI key. Falling back to AST-only."
+    fi ;;
+  6|*)
+    echo "  [OK] AST-only selected — no API key needed." ;;
+esac
+
+echo ""
 echo "  [1/4] Building knowledge graph (may take 2-5 min)..."
+
+run_ast_only() {
+  echo "  Extracting AST (code structure, no LLM)..."
+  graphify extract . --code-only --no-gitignore || graphify extract . --code-only
+}
+
 cd "$PROJECT_ROOT" || exit 1
-if ! graphify extract . --backend claude-cli; then
-  PARTIAL_GRAPH="$PROJECT_ROOT/graphify-out/graph.json"
-  if [ -f "$PARTIAL_GRAPH" ]; then
-    echo "  [OK] Partial AST graph already built — skipping fallback."
-  else
-    echo "  [WARN] No graph produced. Falling back to AST-only (no LLM needed)..."
-    graphify extract . --code-only
+if [ "$BACKEND_OK" = "1" ] && [ -n "$GRAPHIFY_BACKEND" ]; then
+  echo "  Using backend: $GRAPHIFY_BACKEND"
+  if ! graphify extract . --backend "$GRAPHIFY_BACKEND" --no-gitignore; then
+    echo "  [WARN] Semantic extraction failed. Falling back to AST-only..."
+    run_ast_only
   fi
+else
+  run_ast_only
 fi
 cd - > /dev/null
-echo "  Graph built."
 cd "$HERE"
 
 GRAPH_PATH="$PROJECT_ROOT/graphify-out/graph.json"
+if [ -f "$GRAPH_PATH" ]; then
+  echo "  [OK] Graph built."
+else
+  echo "  [WARN] graph.json not found. Chat server will start but graph queries won't work."
+  echo "         Re-run: graphify extract . --code-only --no-gitignore"
+fi
+
 
 # 4. Auto-detect config using Claude
 echo "  [2/4] Auto-detecting project config with Claude..."
