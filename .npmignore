@@ -10,8 +10,4 @@ __pycache__/
 config.json
 *.log
 
-# Ignore backend/python specific tools (unless needed)
-server.py
-docs_export.py
-
-# Include skills, install scripts, connect scripts, and cli.js
+# Include skills, install scripts, connect scripts, python scripts, and cli.js
